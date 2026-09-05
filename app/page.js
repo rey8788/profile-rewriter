@@ -51,11 +51,12 @@ export default function Home() {
       <section className="hero">
         <div className="hero-inner">
           <p className="eyebrow">Upwork Profile Builder</p>
-          <h1>Profile Rewriter</h1>
+          <h1>Title &amp; Overview Rewriter</h1>
           <p>
-            Paste your current title and overview. It gets checked against the Profile Builder
-            framework, section by section, and rewritten wherever it&apos;s weak, using only what
-            you actually gave it.
+            For freelancers who aren&apos;t sure what to put in their title and overview, or
+            already have something up that still reads generic. Paste what you&apos;ve got and
+            it gets checked against the Profile Builder framework, section by section, then
+            rewritten wherever it&apos;s weak, using only what you actually gave it.
           </p>
         </div>
       </section>
@@ -172,6 +173,9 @@ export default function Home() {
       <footer>
         <div className="cta-strip">
           <span>Built on the Upwork Profile Builder framework.</span>
+          <a href="https://stan.store/reymags" target="_blank" rel="noopener noreferrer">
+            More guides at my Stan Store →
+          </a>
         </div>
       </footer>
     </>
