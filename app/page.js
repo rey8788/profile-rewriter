@@ -67,7 +67,7 @@ export default function Home() {
           <p className="sub">Nothing is invented. If something&apos;s missing, it gets flagged instead of made up.</p>
 
           <label htmlFor="title">
-            Title <span className="hint">(the headline under your name)</span>
+            Title <span className="hint">(the headline under your name, 70 characters max)</span>
           </label>
           <input
             id="title"
@@ -76,6 +76,15 @@ export default function Home() {
             onChange={(e) => setTitle(e.target.value)}
             placeholder="e.g. Customer Support & Ops Specialist | Zendesk Setup | E-Commerce"
           />
+          <div
+            style={{
+              fontSize: '0.78rem',
+              marginTop: '0.3rem',
+              color: title.length > 70 ? 'var(--weak-ink)' : 'var(--ink-muted)',
+            }}
+          >
+            {title.length}/70 characters
+          </div>
 
           <label htmlFor="overview">
             Overview <span className="hint">(your full profile summary)</span>
