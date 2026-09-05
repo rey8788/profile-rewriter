@@ -1,9 +1,9 @@
 import './globals.css';
 
 export const metadata = {
-  title: 'Profile Rewriter',
+  title: 'Title & Overview Rewriter',
   description:
-    'Paste your Upwork title and overview to get them checked against the Profile Builder framework and rewritten where weak.',
+    'Check your Upwork title and overview against the Profile Builder framework and get the weak parts rewritten, using only what you gave it.',
 };
 
 export default function RootLayout({ children }) {
