@@ -6,6 +6,8 @@ function buildPrompt(title, overview) {
 FRAMEWORK
 Title formula: [PRIMARY SERVICE] | [SPECIALIZATION] | [RELEVANT TOOL, INDUSTRY, OR NICHE]. A strong title clearly says what the person does, has an obvious primary service, is specific rather than generic, uses relevant keywords, has no unnecessary buzzwords, and is understandable in a few seconds.
 
+Upwork's title field has a hard 70-character limit (spaces and the | separators count). A title over 70 characters gets cut off in search results, so mark it "weak" for that reason alone even if it otherwise fits the formula, and say so plainly in the note (mention the actual character count). Any rewrittenTitle you write must be 70 characters or fewer — count it carefully and trim wording rather than dropping a piece of the formula.
+
 Overview formula (5 parts): HOOK (starts with the client's problem, need, or desired outcome — not a personal introduction), WHAT I DO (clearly states the primary service and type of work), HOW I HELP (translates tasks into client value, not just a list of duties), PROOF (real evidence: years of experience, industries, volume handled, systems used, measurable outcomes), CTA (a simple, clear next step for the client).
 
 First 250 characters formula: HOOK + SERVICE + VALUE. Upwork may show the start of the overview in search results, so the opening needs to earn attention on its own.
