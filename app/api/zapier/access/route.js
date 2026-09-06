@@ -1,4 +1,4 @@
-import { isValidEmail, grantUnlimitedAccess, revokeUnlimitedAccess } from '../../../lib/credits';
+import { isValidEmail, grantUnlimitedAccess, revokeUnlimitedAccess, sendAccessGrantedEmail } from '../../../lib/credits';
 
 function htmlPage(title, message, ok) {
   return new Response(
@@ -35,6 +35,16 @@ async function applyAccessChange({ providedKey, email, action }) {
   const result = action === 'revoke' ? await revokeUnlimitedAccess(email) : await grantUnlimitedAccess(email);
   if (!result.ok) {
     return { ok: false, title: 'Something went wrong', message: 'Could not update access right now. Please try again in a moment.' };
+  }
+
+  // Best-effort — never let a notification-email hiccup undo or hide an already-
+  // successful grant. Only the subscriber gets this; revoke has no customer email.
+  if (action !== 'revoke') {
+    try {
+      await sendAccessGrantedEmail(email);
+    } catch (_) {
+      /* sendAccessGrantedEmail already catches internally — this is just a safety net */
+    }
   }
 
   return {
