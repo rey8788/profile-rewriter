@@ -19,7 +19,7 @@ Upwork profiles allow a maximum of 20 skills. Skills affect which searches and j
 MY CURRENT SKILLS (one per line or comma-separated):
 ${skills || '(not provided)'}
 
-WHAT I ACTUALLY DO:
+MY FULL PROFILE OVERVIEW (my complete Upwork summary — the more complete this is, the more real skills you should be able to find):
 ${services || '(not provided)'}
 
 ${matchSection}
@@ -84,7 +84,7 @@ export async function POST(req) {
   }
 
   const skills = typeof body?.skills === 'string' ? body.skills.slice(0, 2000) : '';
-  const services = typeof body?.services === 'string' ? body.services.slice(0, 3000) : '';
+  const services = typeof body?.services === 'string' ? body.services.slice(0, 5000) : '';
   const mode = body?.mode === 'match' ? 'match' : 'audit';
   const jobPost = typeof body?.jobPost === 'string' ? body.jobPost.slice(0, 8000) : '';
 
