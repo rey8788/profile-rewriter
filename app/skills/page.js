@@ -9,21 +9,27 @@ const SAMPLE_JOB_POST =
   "We're looking for a Customer Support Manager to own our Zendesk instance and lead a small support team. Must have experience with Zendesk automation, help center content, SLA management, and reporting/dashboards. Bonus if you've worked with e-commerce fulfillment or Shopify.";
 
 const OVERVIEW_STORAGE_KEY = 'upworkOverview';
+const EMAIL_STORAGE_KEY = 'upworkEmail';
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const SHORT_OVERVIEW_THRESHOLD = 120;
 
 export default function SkillsPage() {
   const [skills, setSkills] = useState('');
   const [services, setServices] = useState('');
+  const [email, setEmail] = useState('');
   const [mode, setMode] = useState('audit');
   const [jobPost, setJobPost] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [noCredits, setNoCredits] = useState(false);
+  const [creditsRemaining, setCreditsRemaining] = useState(null);
   const [result, setResult] = useState(null);
   const [hasStoredOverview, setHasStoredOverview] = useState(false);
 
-  const hasInput = skills.trim() && (mode === 'audit' || jobPost.trim());
+  const emailValid = EMAIL_RE.test(email.trim());
+  const hasInput = skills.trim() && (mode === 'audit' || jobPost.trim()) && emailValid;
 
-  // Pick up an overview already saved from the Title & Overview tool, if this page hasn't got one yet.
+  // Pick up an overview and email already saved from the Title & Overview tool, if this page hasn't got them yet.
   useEffect(() => {
     try {
       const saved = window.localStorage.getItem(OVERVIEW_STORAGE_KEY);
@@ -31,6 +37,8 @@ export default function SkillsPage() {
         setHasStoredOverview(true);
         if (!services) setServices(saved);
       }
+      const savedEmail = window.localStorage.getItem(EMAIL_STORAGE_KEY);
+      if (savedEmail && !email) setEmail(savedEmail);
     } catch (_) {
       /* localStorage unavailable — carry over silently skipped */
     }
@@ -47,11 +55,22 @@ export default function SkillsPage() {
     }
   }
 
+  function handleEmailChange(e) {
+    const value = e.target.value;
+    setEmail(value);
+    try {
+      window.localStorage.setItem(EMAIL_STORAGE_KEY, value.trim());
+    } catch (_) {
+      /* localStorage unavailable — carry over silently skipped */
+    }
+  }
+
   async function handleSubmit(e) {
     e.preventDefault();
     if (!hasInput || loading) return;
     setLoading(true);
     setError('');
+    setNoCredits(false);
     setResult(null);
     try {
       const res = await fetch('/api/skills', {
@@ -62,13 +81,19 @@ export default function SkillsPage() {
           services,
           mode,
           jobPost: mode === 'match' ? jobPost : '',
+          email: email.trim(),
         }),
       });
       const data = await res.json();
       if (!res.ok) {
+        if (data?.error === 'no_credits') {
+          setNoCredits(true);
+          setCreditsRemaining(0);
+        }
         throw new Error(data?.message || 'Something went wrong. Please try again.');
       }
       setResult(data);
+      if (typeof data?.creditsRemaining === 'number') setCreditsRemaining(data.creditsRemaining);
     } catch (err) {
       setError(err.message || 'Something went wrong. Please try again.');
     } finally {
@@ -109,6 +134,17 @@ export default function SkillsPage() {
         <form className="card" onSubmit={handleSubmit}>
           <h2>Your skills</h2>
           <p className="sub">Upwork allows up to 20 skills on a profile.</p>
+
+          <label htmlFor="email">
+            Email <span className="hint">(gets you 5 free checks — no spam, just used to track your free checks)</span>
+          </label>
+          <input
+            id="email"
+            type="email"
+            value={email}
+            onChange={handleEmailChange}
+            placeholder="you@example.com"
+          />
 
           <label htmlFor="skills">
             Current skills <span className="hint">(one per line, or comma-separated)</span>
@@ -216,12 +252,12 @@ export default function SkillsPage() {
             {loading ? 'Checking your skills…' : 'Check my skills'}
           </button>
 
-          <div className={`status-line ${error ? 'err' : ''}`}>
-            {error
+          <div className={`status-line ${error && !noCredits ? 'err' : ''}`}>
+            {error && !noCredits
               ? error
               : loading
               ? 'This usually takes 5–15 seconds.'
-              : (
+              : !error && (
                 <button
                   type="button"
                   onClick={loadSample}
@@ -239,6 +275,22 @@ export default function SkillsPage() {
                 </button>
               )}
           </div>
+
+          {creditsRemaining !== null && !noCredits && (
+            <div style={{ fontSize: '0.8rem', color: 'var(--ink-muted)', marginTop: '-0.4rem' }}>
+              {creditsRemaining} of 5 free checks remaining for this email.
+            </div>
+          )}
+
+          {noCredits && (
+            <div className="gaps" style={{ marginTop: '1rem' }}>
+              <h3>You&apos;re out of free checks</h3>
+              <p>
+                You&apos;ve used all 5 free checks for this email. Unlimited access is coming soon — for
+                now, check out the guides below while you wait.
+              </p>
+            </div>
+          )}
         </form>
 
         {!result && (
@@ -259,12 +311,18 @@ export default function SkillsPage() {
                 <div>
                   <div className="label">
                     {result.matchScore.recommendation === 'strong'
-                      ? 'Strong match — apply'
+                      ? 'Strong match — go ahead and apply'
                       : result.matchScore.recommendation === 'weak'
-                      ? 'Weak match — think twice'
-                      : 'Moderate match — apply, address the gaps'}
+                      ? "Not a strong match — don't apply yet"
+                      : 'Possible match — address the gaps in your proposal'}
                   </div>
                   <div className="note">{result.matchScore.note}</div>
+                  {result.matchScore.recommendation === 'weak' && (
+                    <div className="note" style={{ marginTop: '0.4rem', fontWeight: 600 }}>
+                      Update your skills and profile overview above to reflect your real experience, then run this
+                      check again before spending a connect on this one.
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -334,6 +392,23 @@ export default function SkillsPage() {
                   Suggested order <span className="tag">Updated</span>
                 </h3>
                 <div className="rewrite-copy">{result.suggestedOrder.join('\n')}</div>
+              </div>
+            )}
+
+            {result.interviewPrep?.length > 0 && (
+              <div className="rewrite-block">
+                <h3>
+                  Bonus: practice interview questions <span className="tag">For this job</span>
+                </h3>
+                <ul className="skill-list">
+                  {result.interviewPrep.map((item, i) => (
+                    <li key={i}>
+                      <strong>{item.question}</strong>
+                      <br />
+                      <span style={{ color: 'var(--ink-muted)' }}>{item.tip}</span>
+                    </li>
+                  ))}
+                </ul>
               </div>
             )}
           </div>
