@@ -260,13 +260,8 @@ export default function Home() {
           {!unlimitedAccess && creditsRemaining !== null && !noCredits && !needsVerification && (
             <div style={{ fontSize: '0.8rem', color: 'var(--ink-muted)', marginTop: '-0.4rem' }}>
               {creditsRemaining} of 5 free checks remaining for this email.{' '}
-              
-                href={SUBSCRIBE_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{ color: 'var(--accent)', fontWeight: 600 }}
-              >
-                Want unlimited checks? Subscribe →
+              <a href={SUBSCRIBE_URL} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)', fontWeight: 600 }}>
+                Want unlimited checks? Subscribe &rarr;
               </a>
             </div>
           )}
@@ -334,14 +329,8 @@ export default function Home() {
                 You&apos;ve used all 5 free checks for this email. Subscribe to Profile Rewriter
                 Unlimited to keep checking both tools as often as you want.
               </p>
-              
-                href={SUBSCRIBE_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn"
-                style={{ display: 'block', textDecoration: 'none', textAlign: 'center' }}
-              >
-                Subscribe for unlimited checks →
+              <a href={SUBSCRIBE_URL} target="_blank" rel="noopener noreferrer" className="btn" style={{ display: 'block', textDecoration: 'none', textAlign: 'center' }}>
+                Subscribe for unlimited checks &rarr;
               </a>
             </div>
           )}
