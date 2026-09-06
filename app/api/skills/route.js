@@ -33,6 +33,8 @@ General rules for every mode:
 - "possibleRemovals": skills already listed that are too vague, redundant with another listed skill, or unlikely to help (generic filler terms). Leave empty if the list is already clean.
 - "suggestedOrder": the final recommended skill list, in priority order, capped at 20 entries, built only from skills that are either already listed or included in suggestedAdds — never a skill invented out of nowhere.
 
+Never use an em dash (—) anywhere in any note, reason, or tip. Real people don't type them. Use a period, a comma, or a simple word like "and" or "but" instead.
+
 Reply with ONLY a JSON object, no other text, in exactly this shape:
 {
   "skillCountCheck": {"status": "pass or weak", "note": "one sentence mentioning the actual count"},
