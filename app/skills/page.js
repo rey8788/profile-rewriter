@@ -184,14 +184,16 @@ export default function SkillsPage() {
         <div className="hero-inner">
           <nav className="tool-nav">
             <a href="/">Title &amp; Overview</a>
-            <a href="/skills" className="active">Skills Optimizer</a>
+            <a href="/skills" className="active">Job Match</a>
           </nav>
           <p className="eyebrow">Upwork Profile Builder</p>
-          <h1>Skills Optimizer</h1>
+          <h1>Are You a Match for This Job?</h1>
           <p>
-            For freelancers who aren&apos;t sure which skills to add, drop, or prioritize —
-            whether you&apos;re cleaning up your profile in general or trying to match a specific
-            job post. Nothing gets invented: real gaps get flagged honestly instead of faked.
+            Paste in a job posting and we&apos;ll check it against your skills and profile — see
+            your match score, what&apos;s already covered, and the real gaps worth fixing before
+            you spend a connect applying. No job posting yet? We&apos;ll run a full skills audit
+            instead and tell you what to add. Nothing gets invented: real gaps get flagged
+            honestly instead of faked.
           </p>
         </div>
       </section>
@@ -429,8 +431,9 @@ export default function SkillsPage() {
 
         {!result && (
           <div className="card placeholder-card">
-            Your results will show up here: a skill-count check, skills worth adding or dropping,
-            and a suggested order — matched to a specific job post if you gave one.
+            Your results will show up here: a match score against the job you pasted (or a full
+            skills audit if you didn&apos;t), skills worth adding or dropping, and a suggested
+            order.
           </div>
         )}
 
