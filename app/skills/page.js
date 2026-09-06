@@ -342,5 +342,4 @@ export default function SkillsPage() {
               )}
           </div>
 
-          {unlimitedAccess && !noCredits && !needsVerification && (
-            <div
+          {unlimitedAccess && !noCredits && !needsVerification &&
