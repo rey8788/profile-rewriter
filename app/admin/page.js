@@ -48,7 +48,7 @@ export default async function AdminPage({ searchParams }) {
         <div className="hero-inner">
           <nav className="tool-nav">
             <a href="/">Title &amp; Overview</a>
-            <a href="/skills">Skills Optimizer</a>
+            <a href="/skills">Job Match</a>
           </nav>
           <p className="eyebrow">Upwork Profile Builder</p>
           <h1>Captured Emails</h1>
@@ -61,10 +61,10 @@ export default async function AdminPage({ searchParams }) {
 
       <main style={{ maxWidth: 760, margin: '0 auto', padding: '2.25rem 1.5rem 4rem' }}>
         <div className="card">
-          {!authorized ? (
-            <NotAuthorized hasAdminKey={Boolean(adminKey)} />
+          {authorized ? (
+            <AdminPanel adminKey={adminKey} errorCode={errorCode} doneAction={doneAction} />
           ) : (
-            <SubscriberTable adminKey={adminKey} errorCode={errorCode} doneAction={doneAction} />
+            <Locked hasAdminKey={Boolean(adminKey)} />
           )}
         </div>
       </main>
@@ -72,7 +72,7 @@ export default async function AdminPage({ searchParams }) {
   );
 }
 
-function NotAuthorized({ hasAdminKey }) {
+function Locked({ hasAdminKey }) {
   if (!hasAdminKey) {
     return (
       <>
@@ -104,13 +104,15 @@ function NotAuthorized({ hasAdminKey }) {
   );
 }
 
-async function SubscriberTable({ adminKey, errorCode, doneAction }) {
+async function AdminPanel({ adminKey, errorCode, doneAction }) {
   const subscribers = await getAllSubscribers();
-  const redirectTo = `/admin?key=${adminKey}`;
+  const redirect = `/admin?key=${adminKey}`;
 
   return (
     <>
-      <h2>{subscribers.length} email{subscribers.length === 1 ? '' : 's'} captured</h2>
+      <h2>
+        {subscribers.length} email{subscribers.length === 1 ? '' : 's'} captured
+      </h2>
       <p className="sub" style={{ marginTop: '0.3rem' }}>
         Reload this page any time to see the latest — nothing here is cached.
       </p>
@@ -141,7 +143,7 @@ async function SubscriberTable({ adminKey, errorCode, doneAction }) {
         }}
       >
         <input type="hidden" name="key" value={adminKey} />
-        <input type="hidden" name="redirect" value={redirectTo} />
+        <input type="hidden" name="redirect" value={redirect} />
         <input
           type="email"
           name="email"
@@ -170,8 +172,7 @@ async function SubscriberTable({ adminKey, errorCode, doneAction }) {
         </button>
       </form>
       <p className="sub" style={{ marginTop: '0.5rem', fontSize: '0.8rem' }}>
-        Use this once someone subscribes through Stan Store — paste their email and grant
-        unlimited access. Revoke it the same way if a subscription ends.
+        Use this once someone subscribes through Stan Store — paste their email and grant unlimited access. Revoke it the same way if a subscription ends.
       </p>
 
       {subscribers.length === 0 ? (
@@ -189,18 +190,16 @@ async function SubscriberTable({ adminKey, errorCode, doneAction }) {
               </tr>
             </thead>
             <tbody>
-              {subscribers.map((row) => (
-                <tr key={row.email}>
-                  <td style={tdStyle}>{row.email}</td>
+              {subscribers.map((s) => (
+                <tr key={s.email}>
+                  <td style={tdStyle}>{s.email}</td>
+                  <td style={tdStyle}>{s.paid ? '—' : `${s.used} of ${FREE_CREDITS}`}</td>
                   <td style={tdStyle}>
-                    {row.paid ? '—' : `${row.used} of ${FREE_CREDITS}`}
-                  </td>
-                  <td style={tdStyle}>
-                    {row.paid ? (
+                    {s.paid ? (
                       <span className="pill pass">Unlimited</span>
                     ) : (
-                      <span className={`pill ${row.remaining > 0 ? 'pass' : 'weak'}`}>
-                        {row.remaining > 0 ? `${row.remaining} left` : 'out'}
+                      <span className={`pill ${s.remaining > 0 ? 'pass' : 'weak'}`}>
+                        {s.remaining > 0 ? `${s.remaining} left` : 'out'}
                       </span>
                     )}
                   </td>
