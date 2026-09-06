@@ -101,6 +101,15 @@ export async function POST(req) {
 
   const creditStatus = await getCreditStatus(email);
   if (!creditStatus.allowed) {
+    if (creditStatus.reason === 'not_verified') {
+      return Response.json(
+        {
+          error: 'email_not_verified',
+          message: 'Verify your email first — we just sent a 6-digit code to it.',
+        },
+        { status: 403 }
+      );
+    }
     return Response.json(
       {
         error: 'no_credits',
