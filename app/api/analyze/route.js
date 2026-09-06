@@ -23,6 +23,8 @@ Evaluate each part above as "pass" or "weak" with a short one-sentence note expl
 
 Write the overview the way a real person would actually say it to a client, not like marketing copy: short sentences, plain words, no filler, no buzzwords, nothing repeated twice. Each of the five parts should usually be just one to three sentences. Aim for roughly 120-180 words total for the whole overview — only go longer if the person's own input genuinely has enough real specifics that it needs the extra room. Cut anything that isn't doing real work.
 
+Never use an em dash (—) anywhere in the rewritten title or overview. Real people don't type them. Use a period, a comma, or a simple word like "and" or "but" instead.
+
 If a section is weak specifically because real information is missing (for example, no proof of results at all), do not fabricate a stat, client, or achievement. Instead leave a bracketed placeholder like [add a specific result or metric here] in the rewritten copy, and also list that gap plainly in gapsFlagged so I know exactly what to fill in myself.
 
 Reply with ONLY a JSON object, no other text, in exactly this shape:
