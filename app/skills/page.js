@@ -1,12 +1,15 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 const SAMPLE_SKILLS = 'Zendesk\nCustomer Support\nEmail Support\nHelp Desk\nCustomer Service\nData Entry';
 const SAMPLE_SERVICES =
   "I set up and manage Zendesk for e-commerce and SaaS companies — forms, fields, triggers, macros, SLAs, help center articles. I also run day-to-day support operations: ticket queues, team training, and reporting.";
 const SAMPLE_JOB_POST =
   "We're looking for a Customer Support Manager to own our Zendesk instance and lead a small support team. Must have experience with Zendesk automation, help center content, SLA management, and reporting/dashboards. Bonus if you've worked with e-commerce fulfillment or Shopify.";
+
+const OVERVIEW_STORAGE_KEY = 'upworkOverview';
+const SHORT_OVERVIEW_THRESHOLD = 120;
 
 export default function SkillsPage() {
   const [skills, setSkills] = useState('');
@@ -16,8 +19,33 @@ export default function SkillsPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [result, setResult] = useState(null);
+  const [hasStoredOverview, setHasStoredOverview] = useState(false);
 
   const hasInput = skills.trim() && (mode === 'audit' || jobPost.trim());
+
+  // Pick up an overview already saved from the Title & Overview tool, if this page hasn't got one yet.
+  useEffect(() => {
+    try {
+      const saved = window.localStorage.getItem(OVERVIEW_STORAGE_KEY);
+      if (saved) {
+        setHasStoredOverview(true);
+        if (!services) setServices(saved);
+      }
+    } catch (_) {
+      /* localStorage unavailable — carry over silently skipped */
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  function handleServicesChange(e) {
+    const value = e.target.value;
+    setServices(value);
+    try {
+      window.localStorage.setItem(OVERVIEW_STORAGE_KEY, value);
+    } catch (_) {
+      /* localStorage unavailable — carry over silently skipped */
+    }
+  }
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -102,14 +130,41 @@ export default function SkillsPage() {
           </div>
 
           <label htmlFor="services">
-            What you do <span className="hint">(a sentence or two — helps spot skills you have but forgot to list)</span>
+            Your profile overview{' '}
+            <span className="hint">(paste your full Upwork overview — the more complete it is, the better the matches)</span>
           </label>
           <textarea
             id="services"
             value={services}
-            onChange={(e) => setServices(e.target.value)}
-            placeholder="e.g. I set up and manage Zendesk for e-commerce companies, run support operations, and train support teams."
+            onChange={handleServicesChange}
+            placeholder="Paste your whole Upwork profile overview here — not just a sentence. The full thing gives much better skill matches."
+            rows={8}
           />
+          {services.trim().length > 0 && services.trim().length < SHORT_OVERVIEW_THRESHOLD && (
+            <div
+              style={{
+                fontSize: '0.78rem',
+                marginTop: '0.3rem',
+                color: 'var(--weak-ink)',
+              }}
+            >
+              This looks short for a full overview — paste your whole summary for better matches.
+            </div>
+          )}
+          {!services.trim() && !hasStoredOverview && (
+            <div
+              style={{
+                fontSize: '0.82rem',
+                marginTop: '0.3rem',
+                color: 'var(--ink-muted)',
+              }}
+            >
+              Don&apos;t have your overview handy?{' '}
+              <a href="/" style={{ color: 'var(--accent)', fontWeight: 600 }}>
+                Build it in Title &amp; Overview first →
+              </a>
+            </div>
+          )}
 
           <label htmlFor="mode-select" style={{ marginBottom: '0.4rem' }}>
             Check type
