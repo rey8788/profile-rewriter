@@ -2,20 +2,22 @@
 
 import { useState } from 'react';
 
-const SAMPLE_TITLE = 'Customer Support & Ops Specialist | Zendesk Setup | E-Commerce';
-const SAMPLE_OVERVIEW =
-  "I help e-commerce and SaaS teams stop drowning in support tickets. I set up Zendesk from scratch (forms, fields, triggers, macros, SLAs) and clean up messy help centers so customers actually find answers instead of emailing you. Over 8+ years I've managed support for stores doing six figures a month, cut first-response time in half, and trained teams of up to 6 agents. If your inbox is a mess or your Zendesk was never set up properly, send me a message and I'll tell you exactly what I'd fix first.";
+const SAMPLE_SKILLS = 'Zendesk\nCustomer Support\nEmail Support\nHelp Desk\nCustomer Service\nData Entry';
+const SAMPLE_SERVICES =
+  "I set up and manage Zendesk for e-commerce and SaaS companies — forms, fields, triggers, macros, SLAs, help center articles. I also run day-to-day support operations: ticket queues, team training, and reporting.";
+const SAMPLE_JOB_POST =
+  "We're looking for a Customer Support Manager to own our Zendesk instance and lead a small support team. Must have experience with Zendesk automation, help center content, SLA management, and reporting/dashboards. Bonus if you've worked with e-commerce fulfillment or Shopify.";
 
-const emptyResult = null;
-
-export default function Home() {
-  const [title, setTitle] = useState('');
-  const [overview, setOverview] = useState('');
+export default function SkillsPage() {
+  const [skills, setSkills] = useState('');
+  const [services, setServices] = useState('');
+  const [mode, setMode] = useState('audit');
+  const [jobPost, setJobPost] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [result, setResult] = useState(emptyResult);
+  const [result, setResult] = useState(null);
 
-  const hasInput = title.trim() || overview.trim();
+  const hasInput = skills.trim() && (mode === 'audit' || jobPost.trim());
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -24,10 +26,15 @@ export default function Home() {
     setError('');
     setResult(null);
     try {
-      const res = await fetch('/api/analyze', {
+      const res = await fetch('/api/skills', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, overview }),
+        body: JSON.stringify({
+          skills,
+          services,
+          mode,
+          jobPost: mode === 'match' ? jobPost : '',
+        }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -42,66 +49,116 @@ export default function Home() {
   }
 
   function loadSample() {
-    setTitle(SAMPLE_TITLE);
-    setOverview(SAMPLE_OVERVIEW);
+    setSkills(SAMPLE_SKILLS);
+    setServices(SAMPLE_SERVICES);
+    if (mode === 'match') setJobPost(SAMPLE_JOB_POST);
   }
+
+  const skillCount = skills
+    .split(/[\n,]/)
+    .map((s) => s.trim())
+    .filter(Boolean).length;
 
   return (
     <>
       <section className="hero">
         <div className="hero-inner">
           <nav className="tool-nav">
-            <a href="/" className="active">Title &amp; Overview</a>
-            <a href="/skills">Skills Optimizer</a>
+            <a href="/">Title &amp; Overview</a>
+            <a href="/skills" className="active">Skills Optimizer</a>
           </nav>
           <p className="eyebrow">Upwork Profile Builder</p>
-          <h1>Title &amp; Overview Rewriter</h1>
+          <h1>Skills Optimizer</h1>
           <p>
-            For freelancers who aren&apos;t sure what to put in their title and overview, or
-            already have something up that still reads generic. Paste what you&apos;ve got and
-            it gets checked against the Profile Builder framework, section by section, then
-            rewritten wherever it&apos;s weak, using only what you actually gave it.
+            For freelancers who aren&apos;t sure which skills to add, drop, or prioritize —
+            whether you&apos;re cleaning up your profile in general or trying to match a specific
+            job post. Nothing gets invented: real gaps get flagged honestly instead of faked.
           </p>
         </div>
       </section>
 
       <main className={result ? 'has-results' : ''}>
         <form className="card" onSubmit={handleSubmit}>
-          <h2>Your profile</h2>
-          <p className="sub">Nothing is invented. If something&apos;s missing, it gets flagged instead of made up.</p>
+          <h2>Your skills</h2>
+          <p className="sub">Upwork allows up to 20 skills on a profile.</p>
 
-          <label htmlFor="title">
-            Title <span className="hint">(the headline under your name, 70 characters max)</span>
+          <label htmlFor="skills">
+            Current skills <span className="hint">(one per line, or comma-separated)</span>
           </label>
-          <input
-            id="title"
-            type="text"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="e.g. Customer Support & Ops Specialist | Zendesk Setup | E-Commerce"
+          <textarea
+            id="skills"
+            value={skills}
+            onChange={(e) => setSkills(e.target.value)}
+            placeholder={'e.g. Zendesk\nCustomer Support\nHelp Desk'}
           />
           <div
             style={{
               fontSize: '0.78rem',
               marginTop: '0.3rem',
-              color: title.length > 70 ? 'var(--weak-ink)' : 'var(--ink-muted)',
+              color: skillCount > 20 ? 'var(--weak-ink)' : 'var(--ink-muted)',
             }}
           >
-            {title.length}/70 characters
+            {skillCount}/20 skills
           </div>
 
-          <label htmlFor="overview">
-            Overview <span className="hint">(your full profile summary)</span>
+          <label htmlFor="services">
+            What you do <span className="hint">(a sentence or two — helps spot skills you have but forgot to list)</span>
           </label>
           <textarea
-            id="overview"
-            value={overview}
-            onChange={(e) => setOverview(e.target.value)}
-            placeholder="Paste your current Upwork overview here..."
+            id="services"
+            value={services}
+            onChange={(e) => setServices(e.target.value)}
+            placeholder="e.g. I set up and manage Zendesk for e-commerce companies, run support operations, and train support teams."
           />
 
+          <label htmlFor="mode-select" style={{ marginBottom: '0.4rem' }}>
+            Check type
+          </label>
+          <div style={{ display: 'flex', gap: '0.6rem', marginBottom: '0.2rem' }}>
+            <button
+              type="button"
+              onClick={() => setMode('audit')}
+              className="btn"
+              style={{
+                marginTop: 0,
+                background: mode === 'audit' ? 'var(--accent)' : 'var(--paper)',
+                color: mode === 'audit' ? 'var(--accent-ink)' : 'var(--ink)',
+                border: mode === 'audit' ? 'none' : '1px solid var(--line)',
+              }}
+            >
+              General audit
+            </button>
+            <button
+              type="button"
+              onClick={() => setMode('match')}
+              className="btn"
+              style={{
+                marginTop: 0,
+                background: mode === 'match' ? 'var(--accent)' : 'var(--paper)',
+                color: mode === 'match' ? 'var(--accent-ink)' : 'var(--ink)',
+                border: mode === 'match' ? 'none' : '1px solid var(--line)',
+              }}
+            >
+              Match a job post
+            </button>
+          </div>
+
+          {mode === 'match' && (
+            <>
+              <label htmlFor="jobPost">
+                Job posting <span className="hint">(paste the full listing)</span>
+              </label>
+              <textarea
+                id="jobPost"
+                value={jobPost}
+                onChange={(e) => setJobPost(e.target.value)}
+                placeholder="Paste the job post you're applying to..."
+              />
+            </>
+          )}
+
           <button className="btn" type="submit" disabled={!hasInput || loading}>
-            {loading ? 'Checking your profile…' : 'Check & rewrite'}
+            {loading ? 'Checking your skills…' : 'Check my skills'}
           </button>
 
           <div className={`status-line ${error ? 'err' : ''}`}>
@@ -123,7 +180,7 @@ export default function Home() {
                     cursor: 'pointer',
                   }}
                 >
-                  Load an example profile
+                  Load an example
                 </button>
               )}
           </div>
@@ -131,52 +188,97 @@ export default function Home() {
 
         {!result && (
           <div className="card placeholder-card">
-            Your results will show up here: a pass/weak check on your title and each part of your
-            overview, plus a rewritten version wherever it needs work.
+            Your results will show up here: a skill-count check, skills worth adding or dropping,
+            and a suggested order — matched to a specific job post if you gave one.
           </div>
         )}
 
         {result && (
           <div className="card">
             <h2>Results</h2>
-            <p className="sub">Here&apos;s how your profile checks out against the framework.</p>
+            <p className="sub">Here&apos;s how your skills check out.</p>
+
+            {mode === 'match' && result.matchScore && result.matchScore.percentage != null && (
+              <div className={`match-score ${result.matchScore.recommendation || 'moderate'}`}>
+                <div className="pct">{result.matchScore.percentage}%</div>
+                <div>
+                  <div className="label">
+                    {result.matchScore.recommendation === 'strong'
+                      ? 'Strong match — apply'
+                      : result.matchScore.recommendation === 'weak'
+                      ? 'Weak match — think twice'
+                      : 'Moderate match — apply, address the gaps'}
+                  </div>
+                  <div className="note">{result.matchScore.note}</div>
+                </div>
+              </div>
+            )}
 
             <div className="score-grid">
-              <ScoreRow label="Title" check={result.titleCheck} />
-              <ScoreRow label="Hook" check={result.overviewCheck?.hook} />
-              <ScoreRow label="What I do" check={result.overviewCheck?.whatIDo} />
-              <ScoreRow label="How I help" check={result.overviewCheck?.howIHelp} />
-              <ScoreRow label="Proof" check={result.overviewCheck?.proof} />
-              <ScoreRow label="First 250 characters" check={result.first250} />
+              <ScoreRow label="Skill count" check={result.skillCountCheck} />
             </div>
 
-            {result.titleCheck?.status === 'weak' && result.titleCheck?.rewrittenTitle && (
+            {result.matchedSkills?.length > 0 && (
               <div className="rewrite-block">
-                <h3>
-                  Rewritten title <span className="tag">Updated</span>
-                </h3>
-                <div className="rewrite-copy">{result.titleCheck.rewrittenTitle}</div>
-              </div>
-            )}
-
-            {result.rewrittenOverview && (
-              <div className="rewrite-block">
-                <h3>
-                  Rewritten overview <span className="tag">Updated</span>
-                </h3>
-                <div className="rewrite-copy">{result.rewrittenOverview}</div>
-              </div>
-            )}
-
-            {Array.isArray(result.gapsFlagged) && result.gapsFlagged.length > 0 && (
-              <div className="gaps">
-                <h3>Fill these in yourself</h3>
-                <p>Nothing was invented for these — add your own real details here.</p>
-                <ul>
-                  {result.gapsFlagged.map((gap, i) => (
-                    <li key={i}>{gap}</li>
+                <h3>Already a match</h3>
+                <ul className="skill-list">
+                  {result.matchedSkills.map((item, i) => (
+                    <li key={i}>
+                      <strong>{item.skill}</strong> — {item.reason}
+                    </li>
                   ))}
                 </ul>
+              </div>
+            )}
+
+            {result.suggestedAdds?.length > 0 && (
+              <div className="rewrite-block">
+                <h3>
+                  Skills to add <span className="tag">Suggested</span>
+                </h3>
+                <ul className="skill-list">
+                  {result.suggestedAdds.map((item, i) => (
+                    <li key={i}>
+                      <strong>{item.skill}</strong> — {item.reason}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {result.possibleRemovals?.length > 0 && (
+              <div className="rewrite-block">
+                <h3>Consider removing</h3>
+                <ul className="skill-list">
+                  {result.possibleRemovals.map((item, i) => (
+                    <li key={i}>
+                      <strong>{item.skill}</strong> — {item.reason}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {result.realGaps?.length > 0 && (
+              <div className="gaps">
+                <h3>Real gaps for this job</h3>
+                <p>Nothing was invented for these — these are things to actually learn or confirm, not fake.</p>
+                <ul>
+                  {result.realGaps.map((item, i) => (
+                    <li key={i}>
+                      <strong>{item.skill}</strong> — {item.reason}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {result.suggestedOrder?.length > 0 && (
+              <div className="rewrite-block">
+                <h3>
+                  Suggested order <span className="tag">Updated</span>
+                </h3>
+                <div className="rewrite-copy">{result.suggestedOrder.join('\n')}</div>
               </div>
             )}
           </div>
