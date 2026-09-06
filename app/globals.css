@@ -146,7 +146,7 @@ h3 {
   position: relative;
   background: var(--dark);
   overflow: hidden;
-  padding: 2.75rem 1.5rem 2.5rem;
+  padding: 2.75rem 0 2.5rem;
 }
 .hero::before {
   content: '';
@@ -173,6 +173,7 @@ h3 {
   position: relative;
   max-width: 920px;
   margin: 0 auto;
+  padding: 0 1.5rem;
 }
 .eyebrow {
   color: var(--gold-soft);
@@ -190,7 +191,6 @@ h3 {
 }
 .hero p {
   color: #cfe0d8;
-  max-width: 56ch;
   margin-top: 0.9rem;
   font-size: 1.03rem;
   line-height: 1.55;
