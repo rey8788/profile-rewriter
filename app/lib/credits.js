@@ -180,6 +180,54 @@ export async function checkVerificationCode(email, code) {
   }
 }
 
+// --- Paid / unlimited access ------------------------------------------------------
+// There's no in-app checkout yet — subscriptions are sold through Stan Store, and
+// Rey grants access by hand from the private /admin page once he sees a sale come
+// through. Once an email is marked paid here, it skips the 5-check cap entirely.
+
+export async function isPaidSubscriber(email) {
+  const { client } = getRedis();
+  if (!client) return false;
+  try {
+    const value = await client.get(`paid:${normalizeEmail(email)}`);
+    return Boolean(value);
+  } catch (err) {
+    console.warn('Paid-status check failed — treating as not paid:', err?.message || err);
+    return false;
+  }
+}
+
+export async function grantUnlimitedAccess(email) {
+  const { client } = getRedis();
+  if (!client) return { ok: false, reason: 'store_unavailable' };
+  const normalized = normalizeEmail(email);
+  try {
+    await client.set(`paid:${normalized}`, '1');
+    try {
+      await client.sadd('subscriber_emails', normalized);
+    } catch (_) {
+      /* non-critical — never fail the grant over the lead list */
+    }
+    return { ok: true };
+  } catch (err) {
+    console.warn('Failed to grant unlimited access:', err?.message || err);
+    return { ok: false, reason: 'store_error' };
+  }
+}
+
+export async function revokeUnlimitedAccess(email) {
+  const { client } = getRedis();
+  if (!client) return { ok: false, reason: 'store_unavailable' };
+  const normalized = normalizeEmail(email);
+  try {
+    await client.del(`paid:${normalized}`);
+    return { ok: true };
+  } catch (err) {
+    console.warn('Failed to revoke unlimited access:', err?.message || err);
+    return { ok: false, reason: 'store_error' };
+  }
+}
+
 // --- Free-check credits -----------------------------------------------------------
 
 // Read-only: how many free checks does this email have left, without spending one.
@@ -192,6 +240,11 @@ export async function getCreditStatus(email) {
   const verified = await isEmailVerified(email);
   if (!verified) {
     return { allowed: false, remaining: FREE_CREDITS, tracked: false, reason: 'not_verified' };
+  }
+
+  const paid = await isPaidSubscriber(email);
+  if (paid) {
+    return { allowed: true, remaining: null, tracked: true, unlimited: true };
   }
 
   const { client } = getRedis();
@@ -221,8 +274,12 @@ export async function getAllSubscribers() {
     const emails = await client.smembers('subscriber_emails');
     const rows = await Promise.all(
       emails.map(async (email) => {
-        const used = Number((await client.get(`credits:${email}`)) || 0);
-        return { email, used, remaining: Math.max(0, FREE_CREDITS - used) };
+        const [usedRaw, paidRaw] = await Promise.all([
+          client.get(`credits:${email}`),
+          client.get(`paid:${email}`),
+        ]);
+        const used = Number(usedRaw || 0);
+        return { email, used, remaining: Math.max(0, FREE_CREDITS - used), paid: Boolean(paidRaw) };
       })
     );
     rows.sort((a, b) => a.email.localeCompare(b.email));
@@ -234,12 +291,22 @@ export async function getAllSubscribers() {
 }
 
 // Call this only after a check has actually succeeded and is about to be returned —
-// never charge a credit for a request that errored out.
+// never charge a credit for a request that errored out. Paid emails skip the counter
+// entirely — they're never charged down and never run out.
 export async function consumeCredit(email) {
   const { client } = getRedis();
   if (!client) return { remaining: FREE_CREDITS, tracked: false };
   const normalized = normalizeEmail(email);
   try {
+    const paid = await isPaidSubscriber(email);
+    if (paid) {
+      try {
+        await client.sadd('subscriber_emails', normalized);
+      } catch (_) {
+        /* non-critical — never fail the response over the lead list */
+      }
+      return { remaining: null, tracked: true, unlimited: true };
+    }
     const used = await client.incr(`credits:${normalized}`);
     try {
       // Keep a simple running list of every email that's used the tool, for Rey's
