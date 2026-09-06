@@ -25,6 +25,12 @@ export default function SkillsPage() {
   const [creditsRemaining, setCreditsRemaining] = useState(null);
   const [result, setResult] = useState(null);
   const [hasStoredOverview, setHasStoredOverview] = useState(false);
+  const [needsVerification, setNeedsVerification] = useState(false);
+  const [codeSent, setCodeSent] = useState(false);
+  const [verificationCode, setVerificationCode] = useState('');
+  const [sendingCode, setSendingCode] = useState(false);
+  const [verifyingCode, setVerifyingCode] = useState(false);
+  const [verifyError, setVerifyError] = useState('');
 
   const emailValid = EMAIL_RE.test(email.trim());
   const hasInput = skills.trim() && (mode === 'audit' || jobPost.trim()) && emailValid;
@@ -86,18 +92,75 @@ export default function SkillsPage() {
       });
       const data = await res.json();
       if (!res.ok) {
+        if (data?.error === 'email_not_verified') {
+          setNeedsVerification(true);
+          setLoading(false);
+          sendCode();
+          return;
+        }
         if (data?.error === 'no_credits') {
           setNoCredits(true);
           setCreditsRemaining(0);
         }
         throw new Error(data?.message || 'Something went wrong. Please try again.');
       }
+      setNeedsVerification(false);
       setResult(data);
       if (typeof data?.creditsRemaining === 'number') setCreditsRemaining(data.creditsRemaining);
     } catch (err) {
       setError(err.message || 'Something went wrong. Please try again.');
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function sendCode() {
+    setSendingCode(true);
+    setVerifyError('');
+    try {
+      const res = await fetch('/api/send-code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setVerifyError(data?.message || 'Could not send a code. Please try again.');
+      } else {
+        setCodeSent(true);
+      }
+    } catch (_) {
+      setVerifyError('Could not send a code. Please try again.');
+    } finally {
+      setSendingCode(false);
+    }
+  }
+
+  async function handleVerifyCode(e) {
+    e.preventDefault();
+    if (!verificationCode.trim() || verifyingCode) return;
+    setVerifyingCode(true);
+    setVerifyError('');
+    try {
+      const res = await fetch('/api/verify-code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim(), code: verificationCode.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setVerifyError(data?.message || 'Could not verify that code.');
+        return;
+      }
+      setNeedsVerification(false);
+      setCodeSent(false);
+      setVerificationCode('');
+      // Verified — automatically continue with the check they were trying to run.
+      handleSubmit({ preventDefault: () => {} });
+    } catch (_) {
+      setVerifyError('Could not verify that code.');
+    } finally {
+      setVerifyingCode(false);
     }
   }
 
@@ -252,8 +315,8 @@ export default function SkillsPage() {
             {loading ? 'Checking your skills…' : 'Check my skills'}
           </button>
 
-          <div className={`status-line ${error && !noCredits ? 'err' : ''}`}>
-            {error && !noCredits
+          <div className={`status-line ${error && !noCredits && !needsVerification ? 'err' : ''}`}>
+            {error && !noCredits && !needsVerification
               ? error
               : loading
               ? 'This usually takes 5–15 seconds.'
@@ -276,9 +339,65 @@ export default function SkillsPage() {
               )}
           </div>
 
-          {creditsRemaining !== null && !noCredits && (
+          {creditsRemaining !== null && !noCredits && !needsVerification && (
             <div style={{ fontSize: '0.8rem', color: 'var(--ink-muted)', marginTop: '-0.4rem' }}>
               {creditsRemaining} of 5 free checks remaining for this email.
+            </div>
+          )}
+
+          {needsVerification && (
+            <div className="gaps" style={{ marginTop: '1rem' }}>
+              <h3>Check your email</h3>
+              <p>
+                {sendingCode
+                  ? 'Sending a 6-digit code to your email…'
+                  : codeSent
+                  ? `We sent a 6-digit code to ${email.trim()}. Enter it below to unlock your 5 free checks.`
+                  : 'We need to verify your email before unlocking your free checks.'}
+              </p>
+              <label htmlFor="verificationCode" style={{ marginTop: '0.8rem' }}>
+                Verification code
+              </label>
+              <input
+                id="verificationCode"
+                type="text"
+                inputMode="numeric"
+                value={verificationCode}
+                onChange={(e) => setVerificationCode(e.target.value)}
+                placeholder="123456"
+                maxLength={6}
+              />
+              <button
+                type="button"
+                className="btn"
+                onClick={handleVerifyCode}
+                disabled={!verificationCode.trim() || verifyingCode}
+                style={{ marginTop: '0.8rem' }}
+              >
+                {verifyingCode ? 'Verifying…' : 'Verify & continue'}
+              </button>
+              <div className="status-line" style={{ marginTop: '0.4rem' }}>
+                {verifyError ? (
+                  <span style={{ color: '#c14b3a' }}>{verifyError}</span>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={sendCode}
+                    disabled={sendingCode}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      padding: 0,
+                      font: 'inherit',
+                      color: 'inherit',
+                      textDecoration: 'underline',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {sendingCode ? 'Sending…' : "Didn't get it? Resend code"}
+                  </button>
+                )}
+              </div>
             </div>
           )}
 
