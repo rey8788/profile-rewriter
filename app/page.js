@@ -8,21 +8,29 @@ const SAMPLE_OVERVIEW =
 
 const emptyResult = null;
 const OVERVIEW_STORAGE_KEY = 'upworkOverview';
+const EMAIL_STORAGE_KEY = 'upworkEmail';
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default function Home() {
   const [title, setTitle] = useState('');
   const [overview, setOverview] = useState('');
+  const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [noCredits, setNoCredits] = useState(false);
+  const [creditsRemaining, setCreditsRemaining] = useState(null);
   const [result, setResult] = useState(emptyResult);
 
-  const hasInput = title.trim() || overview.trim();
+  const emailValid = EMAIL_RE.test(email.trim());
+  const hasInput = (title.trim() || overview.trim()) && emailValid;
 
-  // Pick up an overview already saved from the Skills Optimizer tool, if this page hasn't got one yet.
+  // Pick up an overview and email already saved from the Skills Optimizer tool, if this page hasn't got them yet.
   useEffect(() => {
     try {
-      const saved = window.localStorage.getItem(OVERVIEW_STORAGE_KEY);
-      if (saved && !overview) setOverview(saved);
+      const savedOverview = window.localStorage.getItem(OVERVIEW_STORAGE_KEY);
+      if (savedOverview && !overview) setOverview(savedOverview);
+      const savedEmail = window.localStorage.getItem(EMAIL_STORAGE_KEY);
+      if (savedEmail && !email) setEmail(savedEmail);
     } catch (_) {
       /* localStorage unavailable — carry over silently skipped */
     }
@@ -39,23 +47,39 @@ export default function Home() {
     }
   }
 
+  function handleEmailChange(e) {
+    const value = e.target.value;
+    setEmail(value);
+    try {
+      window.localStorage.setItem(EMAIL_STORAGE_KEY, value.trim());
+    } catch (_) {
+      /* localStorage unavailable — carry over silently skipped */
+    }
+  }
+
   async function handleSubmit(e) {
     e.preventDefault();
     if (!hasInput || loading) return;
     setLoading(true);
     setError('');
+    setNoCredits(false);
     setResult(null);
     try {
       const res = await fetch('/api/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, overview }),
+        body: JSON.stringify({ title, overview, email: email.trim() }),
       });
       const data = await res.json();
       if (!res.ok) {
+        if (data?.error === 'no_credits') {
+          setNoCredits(true);
+          setCreditsRemaining(0);
+        }
         throw new Error(data?.message || 'Something went wrong. Please try again.');
       }
       setResult(data);
+      if (typeof data?.creditsRemaining === 'number') setCreditsRemaining(data.creditsRemaining);
     } catch (err) {
       setError(err.message || 'Something went wrong. Please try again.');
     } finally {
@@ -92,6 +116,17 @@ export default function Home() {
           <h2>Your profile</h2>
           <p className="sub">Nothing is invented. If something&apos;s missing, it gets flagged instead of made up.</p>
 
+          <label htmlFor="email">
+            Email <span className="hint">(gets you 5 free checks — no spam, just used to track your free checks)</span>
+          </label>
+          <input
+            id="email"
+            type="email"
+            value={email}
+            onChange={handleEmailChange}
+            placeholder="you@example.com"
+          />
+
           <label htmlFor="title">
             Title <span className="hint">(the headline under your name, 70 characters max)</span>
           </label>
@@ -126,12 +161,12 @@ export default function Home() {
             {loading ? 'Checking your profile…' : 'Check & rewrite'}
           </button>
 
-          <div className={`status-line ${error ? 'err' : ''}`}>
-            {error
+          <div className={`status-line ${error && !noCredits ? 'err' : ''}`}>
+            {error && !noCredits
               ? error
               : loading
               ? 'This usually takes 5–15 seconds.'
-              : (
+              : !error && (
                 <button
                   type="button"
                   onClick={loadSample}
@@ -149,6 +184,22 @@ export default function Home() {
                 </button>
               )}
           </div>
+
+          {creditsRemaining !== null && !noCredits && (
+            <div style={{ fontSize: '0.8rem', color: 'var(--ink-muted)', marginTop: '-0.4rem' }}>
+              {creditsRemaining} of 5 free checks remaining for this email.
+            </div>
+          )}
+
+          {noCredits && (
+            <div className="gaps" style={{ marginTop: '1rem' }}>
+              <h3>You&apos;re out of free checks</h3>
+              <p>
+                You&apos;ve used all 5 free checks for this email. Unlimited access is coming soon — for
+                now, check out the guides below while you wait.
+              </p>
+            </div>
+          )}
         </form>
 
         {!result && (
