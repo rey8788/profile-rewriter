@@ -198,6 +198,22 @@ export default function SkillsPage() {
             <h2>Results</h2>
             <p className="sub">Here&apos;s how your skills check out.</p>
 
+            {mode === 'match' && result.matchScore && result.matchScore.percentage != null && (
+              <div className={`match-score ${result.matchScore.recommendation || 'moderate'}`}>
+                <div className="pct">{result.matchScore.percentage}%</div>
+                <div>
+                  <div className="label">
+                    {result.matchScore.recommendation === 'strong'
+                      ? 'Strong match — apply'
+                      : result.matchScore.recommendation === 'weak'
+                      ? 'Weak match — think twice'
+                      : 'Moderate match — apply, address the gaps'}
+                  </div>
+                  <div className="note">{result.matchScore.note}</div>
+                </div>
+              </div>
+            )}
+
             <div className="score-grid">
               <ScoreRow label="Skill count" check={result.skillCountCheck} />
             </div>
