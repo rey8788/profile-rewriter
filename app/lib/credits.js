@@ -215,6 +215,26 @@ export async function grantUnlimitedAccess(email) {
   }
 }
 
+// Tells the actual subscriber (not Rey) that their access just unlocked. This is
+// best-effort and never throws — a failed notification email should never break
+// the grant itself, since the grant already succeeded in Redis by the time this
+// is called.
+export async function sendAccessGrantedEmail(email) {
+  const normalized = normalizeEmail(email);
+  try {
+    await sendEmail({
+      to: normalized,
+      subject: 'Your Profile Rewriter access is now unlimited',
+      text: `Good news — your Profile Rewriter access is now unlimited. No more 5-check limit on either tool.\n\nRun a check any time: https://profile-rewriter.vercel.app`,
+      html: `<p>Good news — your Profile Rewriter access is now <strong>unlimited</strong>. No more 5-check limit on either tool.</p><p>Run a check any time: <a href="https://profile-rewriter.vercel.app">https://profile-rewriter.vercel.app</a></p>`,
+    });
+    return { sent: true };
+  } catch (err) {
+    console.warn('Could not send access-granted email:', err?.message || err);
+    return { sent: false };
+  }
+}
+
 export async function revokeUnlimitedAccess(email) {
   const { client } = getRedis();
   if (!client) return { ok: false, reason: 'store_unavailable' };
