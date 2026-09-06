@@ -32,7 +32,7 @@ export default function Home() {
   const emailValid = EMAIL_RE.test(email.trim());
   const hasInput = (title.trim() || overview.trim()) && emailValid;
 
-  // Pick up an overview and email already saved from the Skills Optimizer tool, if this page hasn't got them yet.
+  // Pick up an overview and email already saved from the Job Match tool, if this page hasn't got them yet.
   useEffect(() => {
     try {
       const savedOverview = window.localStorage.getItem(OVERVIEW_STORAGE_KEY);
@@ -164,7 +164,7 @@ export default function Home() {
         <div className="hero-inner">
           <nav className="tool-nav">
             <a href="/" className="active">Title &amp; Overview</a>
-            <a href="/skills">Skills Optimizer</a>
+            <a href="/skills">Job Match</a>
           </nav>
           <p className="eyebrow">Upwork Profile Builder</p>
           <h1>Title &amp; Overview Rewriter</h1>
