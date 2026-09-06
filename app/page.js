@@ -10,6 +10,7 @@ const emptyResult = null;
 const OVERVIEW_STORAGE_KEY = 'upworkOverview';
 const EMAIL_STORAGE_KEY = 'upworkEmail';
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const SUBSCRIBE_URL = 'https://stan.store/reymags/p/profile-rewriter--unlimited-access';
 
 export default function Home() {
   const [title, setTitle] = useState('');
@@ -258,7 +259,15 @@ export default function Home() {
 
           {!unlimitedAccess && creditsRemaining !== null && !noCredits && !needsVerification && (
             <div style={{ fontSize: '0.8rem', color: 'var(--ink-muted)', marginTop: '-0.4rem' }}>
-              {creditsRemaining} of 5 free checks remaining for this email.
+              {creditsRemaining} of 5 free checks remaining for this email.{' '}
+              
+                href={SUBSCRIBE_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ color: 'var(--accent)', fontWeight: 600 }}
+              >
+                Want unlimited checks? Subscribe →
+              </a>
             </div>
           )}
 
@@ -322,9 +331,18 @@ export default function Home() {
             <div className="gaps" style={{ marginTop: '1rem' }}>
               <h3>You&apos;re out of free checks</h3>
               <p>
-                You&apos;ve used all 5 free checks for this email. Unlimited access is coming soon — for
-                now, check out the guides below while you wait.
+                You&apos;ve used all 5 free checks for this email. Subscribe to Profile Rewriter
+                Unlimited to keep checking both tools as often as you want.
               </p>
+              
+                href={SUBSCRIBE_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn"
+                style={{ display: 'block', textDecoration: 'none', textAlign: 'center' }}
+              >
+                Subscribe for unlimited checks →
+              </a>
             </div>
           )}
         </form>
