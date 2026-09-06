@@ -148,8 +148,8 @@ export async function POST(req) {
       );
     }
 
-    const { remaining } = await consumeCredit(email);
-    return Response.json({ ...data, creditsRemaining: remaining });
+    const { remaining, unlimited } = await consumeCredit(email);
+    return Response.json({ ...data, creditsRemaining: remaining, unlimitedAccess: Boolean(unlimited) });
   } catch (err) {
     console.error('skills route error:', err);
     return Response.json(
