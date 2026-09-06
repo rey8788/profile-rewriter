@@ -19,6 +19,7 @@ export default function Home() {
   const [error, setError] = useState('');
   const [noCredits, setNoCredits] = useState(false);
   const [creditsRemaining, setCreditsRemaining] = useState(null);
+  const [unlimitedAccess, setUnlimitedAccess] = useState(false);
   const [result, setResult] = useState(emptyResult);
   const [needsVerification, setNeedsVerification] = useState(false);
   const [codeSent, setCodeSent] = useState(false);
@@ -93,6 +94,7 @@ export default function Home() {
       setNeedsVerification(false);
       setResult(data);
       if (typeof data?.creditsRemaining === 'number') setCreditsRemaining(data.creditsRemaining);
+      setUnlimitedAccess(Boolean(data?.unlimitedAccess));
     } catch (err) {
       setError(err.message || 'Something went wrong. Please try again.');
     } finally {
@@ -248,7 +250,13 @@ export default function Home() {
               )}
           </div>
 
-          {creditsRemaining !== null && !noCredits && !needsVerification && (
+          {unlimitedAccess && !noCredits && !needsVerification && (
+            <div style={{ fontSize: '0.8rem', color: 'var(--ink-muted)', marginTop: '-0.4rem' }}>
+              Unlimited access
+            </div>
+          )}
+
+          {!unlimitedAccess && creditsRemaining !== null && !noCredits && !needsVerification && (
             <div style={{ fontSize: '0.8rem', color: 'var(--ink-muted)', marginTop: '-0.4rem' }}>
               {creditsRemaining} of 5 free checks remaining for this email.
             </div>
