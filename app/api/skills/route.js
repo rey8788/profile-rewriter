@@ -1,4 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk';
+import { getCreditStatus, consumeCredit, isValidEmail } from '../../lib/credits';
 
 function buildPrompt({ skills, services, mode, jobPost }) {
   const matchSection =
@@ -8,8 +9,10 @@ ${jobPost}
 
 Since a job posting was given, run in JOB-MATCH mode: compare the job's language against my current skills and my services description. Fill in "matchedSkills" (skills I already listed that this job is clearly looking for — say why each matters for this job), and "realGaps" (skills this job wants that nothing in my skills list or services description supports — flag these honestly as real gaps to actually learn or confirm, never invent that I have them). Leave "matchedSkills" and "realGaps" as empty arrays only if genuinely nothing qualifies. Make "suggestedOrder" specifically prioritized for THIS job posting.
 
-Also fill in "matchScore": estimate what percentage (0-100) of this job's core stated requirements are genuinely covered by my current skills plus my services description — base it on real overlap, not on skill count alone. Set "recommendation" to exactly one of "strong" (roughly 75-100 — a clear fit, apply with confidence), "moderate" (roughly 45-74 — apply, but use the cover letter/proposal to address the gaps), or "weak" (below 45 — the gaps are significant enough that I should close them first or think twice before applying). Add a one-sentence "note" explaining the score in plain terms, referencing the actual gaps or strengths that drove it.`
-      : `No job posting was given, so run in GENERAL AUDIT mode. Leave "matchedSkills" and "realGaps" as empty arrays — those only apply when a specific job posting is being matched. Make "suggestedOrder" a sensible general-purpose order based on what's most central to my services. Set "matchScore" to {"percentage": null, "recommendation": null, "note": null} since there's no job posting to score against.`;
+Also fill in "matchScore": estimate what percentage (0-100) of this job's core stated requirements are genuinely covered by my current skills plus my services description — base it on real overlap, not on skill count alone, and be honest even when it's discouraging. The point of this score is to stop me from spending a paid Upwork connect applying to a job I'm not ready for, not to make me feel good. Set "recommendation" to exactly one of "strong" (80-100 — a clear fit, apply with confidence), "moderate" (60-79 — a real but incomplete match, apply only if you can directly address the gaps in your proposal), or "weak" (below 60 — hold off on this one; the gaps are large enough that applying now is likely a wasted connect). Add a one-sentence "note" explaining the score in plain terms, referencing the actual gaps or strengths that drove it. If the recommendation is "weak", the note must also say plainly not to apply yet and to go update the skills list and profile overview to reflect real experience, then run this check again before applying.
+
+Also fill in "interviewPrep": 4 to 6 realistic screening or interview questions a client would likely ask for THIS specific job, based on what the posting emphasizes, each paired with a one-sentence "tip" on how to approach answering it using my real skills and overview. Never invent a specific number, story, or outcome I haven't told you — if my overview doesn't give you enough to ground a tip in something real, keep the tip general (e.g. "have a concrete example ready for this").`
+      : `No job posting was given, so run in GENERAL AUDIT mode. Leave "matchedSkills" and "realGaps" as empty arrays — those only apply when a specific job posting is being matched. Make "suggestedOrder" a sensible general-purpose order based on what's most central to my services. Set "matchScore" to {"percentage": null, "recommendation": null, "note": null} since there's no job posting to score against. Set "interviewPrep" to an empty array — there's no specific job to prep for.`;
 
   return `You are auditing an Upwork freelancer's skill list. Do not invent, exaggerate, or assume any skill, tool, or experience that is not clearly supported by the current skills list or the services description I give you.
 
@@ -38,7 +41,8 @@ Reply with ONLY a JSON object, no other text, in exactly this shape:
   "suggestedAdds": [{"skill": "string", "reason": "one sentence"}],
   "possibleRemovals": [{"skill": "string", "reason": "one sentence"}],
   "realGaps": [{"skill": "string", "reason": "one sentence"}],
-  "suggestedOrder": ["skill1", "skill2"]
+  "suggestedOrder": ["skill1", "skill2"],
+  "interviewPrep": [{"question": "string", "tip": "one sentence"}]
 }`;
 }
 
@@ -87,11 +91,31 @@ export async function POST(req) {
   const services = typeof body?.services === 'string' ? body.services.slice(0, 5000) : '';
   const mode = body?.mode === 'match' ? 'match' : 'audit';
   const jobPost = typeof body?.jobPost === 'string' ? body.jobPost.slice(0, 8000) : '';
+  const email = typeof body?.email === 'string' ? body.email.trim().slice(0, 200) : '';
+
+  if (!isValidEmail(email)) {
+    return Response.json(
+      { error: 'invalid_email', message: 'Enter a valid email to run this check.' },
+      { status: 400 }
+    );
+  }
 
   if (!skills.trim()) {
     return Response.json(
       { error: 'invalid_request', message: 'Provide your current skills to check.' },
       { status: 400 }
+    );
+  }
+
+  const creditStatus = await getCreditStatus(email);
+  if (!creditStatus.allowed) {
+    return Response.json(
+      {
+        error: 'no_credits',
+        message: "You've used all 5 free checks for this email. Unlimited access is coming soon — for now, check out the guides below in the meantime.",
+        remaining: 0,
+      },
+      { status: 403 }
     );
   }
 
@@ -115,7 +139,8 @@ export async function POST(req) {
       );
     }
 
-    return Response.json(data);
+    const { remaining } = await consumeCredit(email);
+    return Response.json({ ...data, creditsRemaining: remaining });
   } catch (err) {
     console.error('skills route error:', err);
     return Response.json(
