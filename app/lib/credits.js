@@ -1,100 +1,115 @@
-import { Redis as UpstashRedis } from '@upstash/redis';
-import IORedis from 'ioredis';
+import { getAllSubscribers, FREE_CREDITS } from '../lib/credits';
 
-// Every email gets this many free checks total, shared across both tools
-// (Title & Overview and Skills Optimizer both draw from the same pool).
-export const FREE_CREDITS = 5;
+// Always fetch fresh — this list changes as people use the tools, and it's never
+// something we want a browser or CDN caching.
+export const dynamic = 'force-dynamic';
 
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+export default async function AdminPage({ searchParams }) {
+  const sp = await searchParams;
+  const key = typeof sp?.key === 'string' ? sp.key : '';
+  const adminKey = process.env.ADMIN_KEY;
+  const authorized = Boolean(adminKey) && key === adminKey;
 
-let redisClient = null;
-let redisKind = null; // 'rest' (Upstash-style HTTP API) or 'tcp' (standard redis:// connection string)
+  return (
+    <>
+      <section className="hero">
+        <div className="hero-inner">
+          <nav className="tool-nav">
+            <a href="/">Title &amp; Overview</a>
+            <a href="/skills">Skills Optimizer</a>
+          </nav>
+          <p className="eyebrow">Upwork Profile Builder</p>
+          <h1>Captured Emails</h1>
+          <p>
+            A private list of everyone who has used a free check on either tool, and how
+            many of their 5 they have left.
+          </p>
+        </div>
+      </section>
 
-// Different Redis marketplace integrations on Vercel hand back different shapes of
-// credentials depending on which provider you connect: some give a REST API URL +
-// token pair (Upstash's own integration), others give a single redis:// / rediss://
-// connection string (e.g. Redis Cloud's official integration). We support both so
-// this doesn't break if the integration ever changes.
-function getRedis() {
-  if (redisClient) return { client: redisClient, kind: redisKind };
-
-  const restUrl = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
-  const restToken = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
-  if (restUrl && restToken) {
-    redisClient = new UpstashRedis({ url: restUrl, token: restToken });
-    redisKind = 'rest';
-    return { client: redisClient, kind: redisKind };
-  }
-
-  const connectionUrl =
-    process.env.KV_REDIS_URL || process.env.REDIS_URL || process.env.KV_URL;
-  if (connectionUrl) {
-    redisClient = new IORedis(connectionUrl, {
-      // Keep a serverless request from hanging for a long time if the connection
-      // is slow or unreachable — fail fast so we can fall back to "allow" below.
-      maxRetriesPerRequest: 2,
-      connectTimeout: 5000,
-      lazyConnect: true,
-    });
-    redisClient.on('error', (err) => {
-      console.warn('Redis (tcp) connection error:', err?.message || err);
-    });
-    redisKind = 'tcp';
-    return { client: redisClient, kind: redisKind };
-  }
-
-  return { client: null, kind: null };
+      <main style={{ maxWidth: 760, margin: '0 auto', padding: '2.25rem 1.5rem 4rem' }}>
+        <div className="card">
+          {!authorized ? <NotAuthorized hasAdminKey={Boolean(adminKey)} /> : <SubscriberTable />}
+        </div>
+      </main>
+    </>
+  );
 }
 
-function normalizeEmail(email) {
-  return String(email || '').trim().toLowerCase();
+function NotAuthorized({ hasAdminKey }) {
+  if (!hasAdminKey) {
+    return (
+      <>
+        <h2>Set up your private key first</h2>
+        <p className="sub" style={{ marginTop: '0.6rem' }}>
+          This page isn&apos;t locked to anyone yet because no admin key has been set. In your
+          Vercel project, go to Settings → Environment Variables and add a new variable named{' '}
+          <code>ADMIN_KEY</code> with any private value you pick (think of it like a password —
+          for example a random string of letters and numbers). Redeploy, then come back to this
+          page at:
+        </p>
+        <div className="rewrite-copy" style={{ marginTop: '0.8rem' }}>
+          https://profile-rewriter.vercel.app/admin?key=YOUR_ADMIN_KEY
+        </div>
+        <p className="sub" style={{ marginTop: '0.8rem' }}>
+          Bookmark that link once it works — that&apos;s how you&apos;ll check this list from now on.
+        </p>
+      </>
+    );
+  }
+  return (
+    <>
+      <h2>Not authorized</h2>
+      <p className="sub" style={{ marginTop: '0.6rem' }}>
+        Add <code>?key=YOUR_ADMIN_KEY</code> to the end of this page&apos;s URL, using the value
+        you set for <code>ADMIN_KEY</code> in Vercel.
+      </p>
+    </>
+  );
 }
 
-export function isValidEmail(email) {
-  return EMAIL_RE.test(normalizeEmail(email));
-}
+async function SubscriberTable() {
+  const subscribers = await getAllSubscribers();
 
-// Read-only: how many free checks does this email have left, without spending one.
-// If the credit store isn't configured yet, OR the store errors out for any reason,
-// this fails OPEN (allows the request) rather than blocking the tool entirely — a
-// database hiccup should never take the whole app down, it just means that one
-// request goes untracked.
-export async function getCreditStatus(email) {
-  const { client, kind } = getRedis();
-  if (!client) {
-    console.warn('Credit store not configured (no KV/Upstash/Redis env vars found) — allowing request untracked.');
-    return { allowed: true, remaining: FREE_CREDITS, tracked: false };
-  }
-  const normalized = normalizeEmail(email);
-  try {
-    const raw = kind === 'tcp' ? await client.get(`credits:${normalized}`) : await client.get(`credits:${normalized}`);
-    const used = Number(raw || 0);
-    const remaining = Math.max(0, FREE_CREDITS - used);
-    return { allowed: remaining > 0, remaining, tracked: true };
-  } catch (err) {
-    console.warn('Credit store read failed — allowing request untracked:', err?.message || err);
-    return { allowed: true, remaining: FREE_CREDITS, tracked: false };
-  }
-}
+  return (
+    <>
+      <h2>{subscribers.length} email{subscribers.length === 1 ? '' : 's'} captured</h2>
+      <p className="sub" style={{ marginTop: '0.3rem' }}>
+        Reload this page any time to see the latest — nothing here is cached.
+      </p>
 
-// Call this only after a check has actually succeeded and is about to be returned —
-// never charge a credit for a request that errored out.
-export async function consumeCredit(email) {
-  const { client } = getRedis();
-  if (!client) return { remaining: FREE_CREDITS, tracked: false };
-  const normalized = normalizeEmail(email);
-  try {
-    const used = await client.incr(`credits:${normalized}`);
-    try {
-      // Keep a simple running list of every email that's used the tool, for Rey's
-      // own follow-up — visible in the Redis/Upstash data browser as a Redis set.
-      await client.sadd('subscriber_emails', normalized);
-    } catch (_) {
-      /* non-critical — never fail the response over the lead list */
-    }
-    return { remaining: Math.max(0, FREE_CREDITS - used), tracked: true };
-  } catch (err) {
-    console.warn('Credit store write failed — not counted this time:', err?.message || err);
-    return { remaining: FREE_CREDITS, tracked: false };
-  }
+      {subscribers.length === 0 ? (
+        <p className="sub" style={{ marginTop: '1.2rem' }}>
+          No one has used a free check yet. Once someone does, they&apos;ll show up here.
+        </p>
+      ) : (
+        <div className="subscriber-table-wrap">
+          <table className="subscriber-table">
+            <thead>
+              <tr>
+                <th>Email</th>
+                <th>Checks used</th>
+                <th>Checks left</th>
+              </tr>
+            </thead>
+            <tbody>
+              {subscribers.map((row) => (
+                <tr key={row.email}>
+                  <td>{row.email}</td>
+                  <td>
+                    {row.used} of {FREE_CREDITS}
+                  </td>
+                  <td>
+                    <span className={`pill ${row.remaining > 0 ? 'pass' : 'weak'}`}>
+                      {row.remaining > 0 ? `${row.remaining} left` : 'out'}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </>
+  );
 }
