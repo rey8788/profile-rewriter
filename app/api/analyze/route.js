@@ -1,4 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk';
+import { getCreditStatus, consumeCredit, isValidEmail } from '../../lib/credits';
 
 function buildPrompt(title, overview) {
   return `You are reviewing an Upwork freelancer profile against a specific framework. Do not invent, exaggerate, or assume any facts, clients, years of experience, tools, credentials, or results that are not present in the text I give you.
@@ -82,11 +83,31 @@ export async function POST(req) {
 
   const title = typeof body?.title === 'string' ? body.title.slice(0, 2000) : '';
   const overview = typeof body?.overview === 'string' ? body.overview.slice(0, 8000) : '';
+  const email = typeof body?.email === 'string' ? body.email.trim().slice(0, 200) : '';
+
+  if (!isValidEmail(email)) {
+    return Response.json(
+      { error: 'invalid_email', message: 'Enter a valid email to run this check.' },
+      { status: 400 }
+    );
+  }
 
   if (!title.trim() && !overview.trim()) {
     return Response.json(
       { error: 'invalid_request', message: 'Provide a title or overview to analyze.' },
       { status: 400 }
+    );
+  }
+
+  const creditStatus = await getCreditStatus(email);
+  if (!creditStatus.allowed) {
+    return Response.json(
+      {
+        error: 'no_credits',
+        message: "You've used all 5 free checks for this email. Unlimited access is coming soon — for now, check out the guides below in the meantime.",
+        remaining: 0,
+      },
+      { status: 403 }
     );
   }
 
@@ -110,7 +131,8 @@ export async function POST(req) {
       );
     }
 
-    return Response.json(data);
+    const { remaining } = await consumeCredit(email);
+    return Response.json({ ...data, creditsRemaining: remaining });
   } catch (err) {
     console.error('analyze route error:', err);
     return Response.json(
