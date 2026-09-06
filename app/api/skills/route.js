@@ -121,8 +121,10 @@ export async function POST(req) {
     return Response.json(
       {
         error: 'no_credits',
-        message: "You've used all 5 free checks for this email. Unlimited access is coming soon — for now, check out the guides below in the meantime.",
+        message:
+          "You've used all 5 free checks for this email. Subscribe to Profile Rewriter Unlimited for unlimited checks.",
         remaining: 0,
+        subscribeUrl: 'https://stan.store/reymags/p/profile-rewriter--unlimited-access',
       },
       { status: 403 }
     );
