@@ -50,6 +50,10 @@ export default function Home() {
     <>
       <section className="hero">
         <div className="hero-inner">
+          <nav className="tool-nav">
+            <a href="/" className="active">Title &amp; Overview</a>
+            <a href="/skills">Skills Optimizer</a>
+          </nav>
           <p className="eyebrow">Upwork Profile Builder</p>
           <h1>Title &amp; Overview Rewriter</h1>
           <p>
