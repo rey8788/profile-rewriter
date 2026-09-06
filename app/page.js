@@ -1,12 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 const SAMPLE_TITLE = 'Customer Support & Ops Specialist | Zendesk Setup | E-Commerce';
 const SAMPLE_OVERVIEW =
   "I help e-commerce and SaaS teams stop drowning in support tickets. I set up Zendesk from scratch (forms, fields, triggers, macros, SLAs) and clean up messy help centers so customers actually find answers instead of emailing you. Over 8+ years I've managed support for stores doing six figures a month, cut first-response time in half, and trained teams of up to 6 agents. If your inbox is a mess or your Zendesk was never set up properly, send me a message and I'll tell you exactly what I'd fix first.";
 
 const emptyResult = null;
+const OVERVIEW_STORAGE_KEY = 'upworkOverview';
 
 export default function Home() {
   const [title, setTitle] = useState('');
@@ -16,6 +17,27 @@ export default function Home() {
   const [result, setResult] = useState(emptyResult);
 
   const hasInput = title.trim() || overview.trim();
+
+  // Pick up an overview already saved from the Skills Optimizer tool, if this page hasn't got one yet.
+  useEffect(() => {
+    try {
+      const saved = window.localStorage.getItem(OVERVIEW_STORAGE_KEY);
+      if (saved && !overview) setOverview(saved);
+    } catch (_) {
+      /* localStorage unavailable — carry over silently skipped */
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  function handleOverviewChange(e) {
+    const value = e.target.value;
+    setOverview(value);
+    try {
+      window.localStorage.setItem(OVERVIEW_STORAGE_KEY, value);
+    } catch (_) {
+      /* localStorage unavailable — carry over silently skipped */
+    }
+  }
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -96,7 +118,7 @@ export default function Home() {
           <textarea
             id="overview"
             value={overview}
-            onChange={(e) => setOverview(e.target.value)}
+            onChange={handleOverviewChange}
             placeholder="Paste your current Upwork overview here..."
           />
 
