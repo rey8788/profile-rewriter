@@ -33,6 +33,9 @@ export default function SkillsPage() {
   const [sendingCode, setSendingCode] = useState(false);
   const [verifyingCode, setVerifyingCode] = useState(false);
   const [verifyError, setVerifyError] = useState('');
+  const [proposalLoading, setProposalLoading] = useState(false);
+  const [proposalError, setProposalError] = useState('');
+  const [proposalResult, setProposalResult] = useState(null);
 
   const emailValid = EMAIL_RE.test(email.trim());
   const hasInput = skills.trim() && (mode === 'audit' || jobPost.trim()) && emailValid;
@@ -80,6 +83,8 @@ export default function SkillsPage() {
     setError('');
     setNoCredits(false);
     setResult(null);
+    setProposalResult(null);
+    setProposalError('');
     try {
       const res = await fetch('/api/skills', {
         method: 'POST',
@@ -173,6 +178,41 @@ export default function SkillsPage() {
     if (mode === 'match') setJobPost(SAMPLE_JOB_POST);
   }
 
+  async function handleGenerateProposal() {
+    if (proposalLoading) return;
+    setProposalLoading(true);
+    setProposalError('');
+    setProposalResult(null);
+    try {
+      const res = await fetch('/api/proposal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jobPost, skills, services, email: email.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        if (data?.error === 'email_not_verified') {
+          setNeedsVerification(true);
+          setProposalLoading(false);
+          sendCode();
+          return;
+        }
+        if (data?.error === 'no_credits') {
+          setNoCredits(true);
+          setCreditsRemaining(0);
+        }
+        throw new Error(data?.message || 'Something went wrong. Please try again.');
+      }
+      setProposalResult(data);
+      if (typeof data?.creditsRemaining === 'number') setCreditsRemaining(data.creditsRemaining);
+      setUnlimitedAccess(Boolean(data?.unlimitedAccess));
+    } catch (err) {
+      setProposalError(err.message || 'Something went wrong. Please try again.');
+    } finally {
+      setProposalLoading(false);
+    }
+  }
+
   const skillCount = skills
     .split(/[\n,]/)
     .map((s) => s.trim())
@@ -204,7 +244,7 @@ export default function SkillsPage() {
           <p className="sub">Upwork allows up to 20 skills on a profile.</p>
 
           <label htmlFor="email">
-            Email <span className="hint">(gets you 5 free checks — no spam, just used to track your free checks)</span>
+            Email <span className="hint">(gets you 10 free credits, shared across every tool — no spam, just used to track usage)</span>
           </label>
           <input
             id="email"
@@ -352,7 +392,7 @@ export default function SkillsPage() {
 
           {!unlimitedAccess && creditsRemaining !== null && !noCredits && !needsVerification && (
             <div style={{ fontSize: '0.8rem', color: 'var(--ink-muted)', marginTop: '-0.4rem' }}>
-              {creditsRemaining} of 5 free checks remaining for this email.{' '}
+              {creditsRemaining} of 10 free credits remaining, shared across every tool.{' '}
               <a href={SUBSCRIBE_URL} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)', fontWeight: 600 }}>
                 Want unlimited checks? Subscribe &rarr;
               </a>
@@ -366,8 +406,8 @@ export default function SkillsPage() {
                 {sendingCode
                   ? 'Sending a 6-digit code to your email…'
                   : codeSent
-                  ? `We sent a 6-digit code to ${email.trim()}. Enter it below to unlock your 5 free checks.`
-                  : 'We need to verify your email before unlocking your free checks.'}
+                  ? `We sent a 6-digit code to ${email.trim()}. Enter it below to unlock your 10 free credits.`
+                  : 'We need to verify your email before unlocking your free credits.'}
               </p>
               <label htmlFor="verificationCode" style={{ marginTop: '0.8rem' }}>
                 Verification code
@@ -417,13 +457,13 @@ export default function SkillsPage() {
 
           {noCredits && (
             <div className="gaps" style={{ marginTop: '1rem' }}>
-              <h3>You&apos;re out of free checks</h3>
+              <h3>You&apos;re out of free credits</h3>
               <p>
-                You&apos;ve used all 5 free checks for this email. Subscribe to Profile Rewriter
-                Unlimited to keep checking both tools as often as you want.
+                You&apos;ve used all 10 free credits, shared across every tool. Subscribe to
+                Profile Rewriter Unlimited to keep going as often as you want.
               </p>
               <a href={SUBSCRIBE_URL} target="_blank" rel="noopener noreferrer" className="btn" style={{ display: 'block', textDecoration: 'none', textAlign: 'center' }}>
-                Subscribe for unlimited checks &rarr;
+                Subscribe for unlimited access &rarr;
               </a>
             </div>
           )}
@@ -457,7 +497,7 @@ export default function SkillsPage() {
                   {result.matchScore.recommendation === 'weak' && (
                     <div className="note" style={{ marginTop: '0.4rem', fontWeight: 600 }}>
                       Update your skills and profile overview above to reflect your real experience, then run this
-                      check again before spending a connect on this one.
+                      check again before applying.
                     </div>
                   )}
                 </div>
@@ -546,6 +586,78 @@ export default function SkillsPage() {
                     </li>
                   ))}
                 </ul>
+              </div>
+            )}
+
+            {mode === 'match' && jobPost.trim() && (
+              <div className="rewrite-block">
+                <h3>Ready to submit a proposal?</h3>
+
+                {!proposalResult && (
+                  <>
+                    <p className="sub">
+                      Get a cover letter for this exact job, built with the Upwork Proposal
+                      Builder framework (Hook, Help, Proof, Next Step) — using only what you told
+                      us about your skills and experience. This uses 1 of your free credits.
+                    </p>
+                    <button
+                      type="button"
+                      className="btn"
+                      style={{ marginTop: '0.8rem', width: 'auto' }}
+                      onClick={handleGenerateProposal}
+                      disabled={proposalLoading}
+                    >
+                      {proposalLoading ? 'Writing your proposal…' : 'Yes, write my proposal'}
+                    </button>
+                  </>
+                )}
+
+                {proposalError && (
+                  <div className="status-line err" style={{ marginTop: '0.6rem' }}>
+                    {proposalError}
+                  </div>
+                )}
+
+                {proposalResult && (
+                  <>
+                    <div className="rewrite-copy" style={{ marginTop: '0.6rem' }}>
+                      {proposalResult.proposal}
+                    </div>
+                    {proposalResult.suggestedQuestion && (
+                      <p className="sub" style={{ marginTop: '0.6rem' }}>
+                        <strong>Worth asking the client:</strong> {proposalResult.suggestedQuestion}
+                      </p>
+                    )}
+                    {Array.isArray(proposalResult.gapsFlagged) && proposalResult.gapsFlagged.length > 0 && (
+                      <div className="gaps" style={{ marginTop: '0.8rem' }}>
+                        <h3>Fill these in yourself</h3>
+                        <p>Nothing was invented for these — add your own real details before sending.</p>
+                        <ul>
+                          {proposalResult.gapsFlagged.map((gap, i) => (
+                            <li key={i}>{gap}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    <button
+                      type="button"
+                      onClick={handleGenerateProposal}
+                      disabled={proposalLoading}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        padding: 0,
+                        marginTop: '0.7rem',
+                        font: 'inherit',
+                        color: 'inherit',
+                        textDecoration: 'underline',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {proposalLoading ? 'Writing…' : 'Regenerate (uses another credit)'}
+                    </button>
+                  </>
+                )}
               </div>
             )}
           </div>
