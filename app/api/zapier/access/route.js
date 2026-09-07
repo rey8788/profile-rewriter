@@ -52,7 +52,7 @@ async function applyAccessChange({ providedKey, email, action }) {
     title: action === 'revoke' ? 'Access revoked' : 'Access granted',
     message:
       action === 'revoke'
-        ? `${email} is back to the normal 5 free checks.`
+        ? `${email} is back to the normal 10 free credits.`
         : `${email} now has unlimited access to both tools.`,
   };
 }
