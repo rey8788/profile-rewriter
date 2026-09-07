@@ -124,7 +124,7 @@ export async function POST(req) {
       {
         error: 'no_credits',
         message:
-          "You've used all 5 free checks for this email. Subscribe to Profile Rewriter Unlimited for unlimited checks.",
+          "You've used all 10 free credits, shared across every tool (title & overview, job match, and proposal writer). Subscribe to Profile Rewriter Unlimited for unlimited access.",
         remaining: 0,
         subscribeUrl: 'https://stan.store/reymags/p/profile-rewriter--unlimited-access',
       },
