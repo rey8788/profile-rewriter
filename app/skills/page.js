@@ -36,6 +36,7 @@ export default function SkillsPage() {
   const [proposalLoading, setProposalLoading] = useState(false);
   const [proposalError, setProposalError] = useState('');
   const [proposalResult, setProposalResult] = useState(null);
+  const [proposalCopied, setProposalCopied] = useState(false);
 
   const emailValid = EMAIL_RE.test(email.trim());
   const hasInput = skills.trim() && (mode === 'audit' || jobPost.trim()) && emailValid;
@@ -178,11 +179,23 @@ export default function SkillsPage() {
     if (mode === 'match') setJobPost(SAMPLE_JOB_POST);
   }
 
+  async function handleCopyProposal() {
+    if (!proposalResult?.proposal) return;
+    try {
+      await navigator.clipboard.writeText(proposalResult.proposal);
+      setProposalCopied(true);
+      setTimeout(() => setProposalCopied(false), 2000);
+    } catch (_) {
+      /* clipboard unavailable — the text is still right there to select and copy */
+    }
+  }
+
   async function handleGenerateProposal() {
     if (proposalLoading) return;
     setProposalLoading(true);
     setProposalError('');
     setProposalResult(null);
+    setProposalCopied(false);
     try {
       const res = await fetch('/api/proposal', {
         method: 'POST',
@@ -497,7 +510,7 @@ export default function SkillsPage() {
                   {result.matchScore.recommendation === 'weak' && (
                     <div className="note" style={{ marginTop: '0.4rem', fontWeight: 600 }}>
                       Update your skills and profile overview above to reflect your real experience, then run this
-                      check again before applying.
+                      check again before spending a connect on this one.
                     </div>
                   )}
                 </div>
@@ -572,29 +585,11 @@ export default function SkillsPage() {
               </div>
             )}
 
-            {result.interviewPrep?.length > 0 && (
-              <div className="rewrite-block">
-                <h3>
-                  Bonus: practice interview questions <span className="tag">For this job</span>
-                </h3>
-                <ul className="skill-list">
-                  {result.interviewPrep.map((item, i) => (
-                    <li key={i}>
-                      <strong>{item.question}</strong>
-                      <br />
-                      <span style={{ color: 'var(--ink-muted)' }}>{item.tip}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
             {mode === 'match' && jobPost.trim() && (
               <div className="rewrite-block">
-                <h3>Ready to submit a proposal?</h3>
-
-                {!proposalResult && (
+                {!proposalResult ? (
                   <>
+                    <h3>Ready to submit a proposal?</h3>
                     <p className="sub">
                       Get a cover letter for this exact job, built with the Upwork Proposal
                       Builder framework (Hook, Help, Proof, Next Step) — using only what you told
@@ -610,24 +605,53 @@ export default function SkillsPage() {
                       {proposalLoading ? 'Writing your proposal…' : 'Yes, write my proposal'}
                     </button>
                   </>
-                )}
-
-                {proposalError && (
-                  <div className="status-line err" style={{ marginTop: '0.6rem' }}>
-                    {proposalError}
-                  </div>
-                )}
-
-                {proposalResult && (
+                ) : (
                   <>
+                    <h3>
+                      Your proposal <span className="tag">Ready to send</span>
+                    </h3>
+                    <p className="sub">
+                      Copy this into the Upwork proposal box, personalize the greeting, and send it.
+                    </p>
                     <div className="rewrite-copy" style={{ marginTop: '0.6rem' }}>
                       {proposalResult.proposal}
                     </div>
+
+                    <div style={{ display: 'flex', gap: '0.9rem', alignItems: 'center', marginTop: '0.7rem', flexWrap: 'wrap' }}>
+                      <button
+                        type="button"
+                        className="btn"
+                        style={{ marginTop: 0, width: 'auto' }}
+                        onClick={handleCopyProposal}
+                      >
+                        {proposalCopied ? 'Copied ✓' : 'Copy proposal'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleGenerateProposal}
+                        disabled={proposalLoading}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          padding: 0,
+                          font: 'inherit',
+                          fontSize: '0.85rem',
+                          color: 'var(--ink-muted)',
+                          textDecoration: 'underline',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        {proposalLoading ? 'Writing…' : 'Regenerate (uses another credit)'}
+                      </button>
+                    </div>
+
                     {proposalResult.suggestedQuestion && (
-                      <p className="sub" style={{ marginTop: '0.6rem' }}>
-                        <strong>Worth asking the client:</strong> {proposalResult.suggestedQuestion}
-                      </p>
+                      <div className="tip-block">
+                        <strong>Worth asking the client</strong>
+                        {proposalResult.suggestedQuestion}
+                      </div>
                     )}
+
                     {Array.isArray(proposalResult.gapsFlagged) && proposalResult.gapsFlagged.length > 0 && (
                       <div className="gaps" style={{ marginTop: '0.8rem' }}>
                         <h3>Fill these in yourself</h3>
@@ -639,24 +663,13 @@ export default function SkillsPage() {
                         </ul>
                       </div>
                     )}
-                    <button
-                      type="button"
-                      onClick={handleGenerateProposal}
-                      disabled={proposalLoading}
-                      style={{
-                        background: 'none',
-                        border: 'none',
-                        padding: 0,
-                        marginTop: '0.7rem',
-                        font: 'inherit',
-                        color: 'inherit',
-                        textDecoration: 'underline',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      {proposalLoading ? 'Writing…' : 'Regenerate (uses another credit)'}
-                    </button>
                   </>
+                )}
+
+                {proposalError && (
+                  <div className="status-line err" style={{ marginTop: '0.6rem' }}>
+                    {proposalError}
+                  </div>
                 )}
               </div>
             )}
