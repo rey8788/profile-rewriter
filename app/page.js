@@ -183,7 +183,7 @@ export default function Home() {
           <p className="sub">Nothing is invented. If something&apos;s missing, it gets flagged instead of made up.</p>
 
           <label htmlFor="email">
-            Email <span className="hint">(gets you 5 free checks — no spam, just used to track your free checks)</span>
+            Email <span className="hint">(gets you 10 free credits, shared across every tool — no spam, just used to track usage)</span>
           </label>
           <input
             id="email"
@@ -259,7 +259,7 @@ export default function Home() {
 
           {!unlimitedAccess && creditsRemaining !== null && !noCredits && !needsVerification && (
             <div style={{ fontSize: '0.8rem', color: 'var(--ink-muted)', marginTop: '-0.4rem' }}>
-              {creditsRemaining} of 5 free checks remaining for this email.{' '}
+              {creditsRemaining} of 10 free credits remaining, shared across every tool.{' '}
               <a href={SUBSCRIBE_URL} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)', fontWeight: 600 }}>
                 Want unlimited checks? Subscribe &rarr;
               </a>
@@ -273,8 +273,8 @@ export default function Home() {
                 {sendingCode
                   ? 'Sending a 6-digit code to your email…'
                   : codeSent
-                  ? `We sent a 6-digit code to ${email.trim()}. Enter it below to unlock your 5 free checks.`
-                  : 'We need to verify your email before unlocking your free checks.'}
+                  ? `We sent a 6-digit code to ${email.trim()}. Enter it below to unlock your 10 free credits.`
+                  : 'We need to verify your email before unlocking your free credits.'}
               </p>
               <label htmlFor="verificationCode" style={{ marginTop: '0.8rem' }}>
                 Verification code
@@ -324,13 +324,13 @@ export default function Home() {
 
           {noCredits && (
             <div className="gaps" style={{ marginTop: '1rem' }}>
-              <h3>You&apos;re out of free checks</h3>
+              <h3>You&apos;re out of free credits</h3>
               <p>
-                You&apos;ve used all 5 free checks for this email. Subscribe to Profile Rewriter
-                Unlimited to keep checking both tools as often as you want.
+                You&apos;ve used all 10 free credits, shared across every tool. Subscribe to
+                Profile Rewriter Unlimited to keep going as often as you want.
               </p>
               <a href={SUBSCRIBE_URL} target="_blank" rel="noopener noreferrer" className="btn" style={{ display: 'block', textDecoration: 'none', textAlign: 'center' }}>
-                Subscribe for unlimited checks &rarr;
+                Subscribe for unlimited access &rarr;
               </a>
             </div>
           )}
