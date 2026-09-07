@@ -27,7 +27,7 @@ const ERROR_MESSAGES = {
 
 const DONE_MESSAGES = {
   grant: 'Unlimited access granted.',
-  revoke: 'Unlimited access revoked — back to the normal 5 free checks.',
+  revoke: 'Unlimited access revoked — back to the normal 10 free credits.',
 };
 
 // Always fetch fresh — this list changes as people use the tools, and it's never
@@ -53,18 +53,18 @@ export default async function AdminPage({ searchParams }) {
           <p className="eyebrow">Upwork Profile Builder</p>
           <h1>Captured Emails</h1>
           <p>
-            A private list of everyone who has used a free check on either tool, how many of
-            their 5 they have left, and a way to grant unlimited access to paying subscribers.
+            A private list of everyone who has used a free credit on any tool, how many of
+            their 10 they have left, and a way to grant unlimited access to paying subscribers.
           </p>
         </div>
       </section>
 
       <main style={{ maxWidth: 760, margin: '0 auto', padding: '2.25rem 1.5rem 4rem' }}>
         <div className="card">
-          {authorized ? (
-            <AdminPanel adminKey={adminKey} errorCode={errorCode} doneAction={doneAction} />
+          {!authorized ? (
+            <NotAuthorized hasAdminKey={Boolean(adminKey)} />
           ) : (
-            <Locked hasAdminKey={Boolean(adminKey)} />
+            <SubscriberTable adminKey={adminKey} errorCode={errorCode} doneAction={doneAction} />
           )}
         </div>
       </main>
@@ -72,7 +72,7 @@ export default async function AdminPage({ searchParams }) {
   );
 }
 
-function Locked({ hasAdminKey }) {
+function NotAuthorized({ hasAdminKey }) {
   if (!hasAdminKey) {
     return (
       <>
@@ -104,15 +104,13 @@ function Locked({ hasAdminKey }) {
   );
 }
 
-async function AdminPanel({ adminKey, errorCode, doneAction }) {
+async function SubscriberTable({ adminKey, errorCode, doneAction }) {
   const subscribers = await getAllSubscribers();
-  const redirect = `/admin?key=${adminKey}`;
+  const redirectTo = `/admin?key=${adminKey}`;
 
   return (
     <>
-      <h2>
-        {subscribers.length} email{subscribers.length === 1 ? '' : 's'} captured
-      </h2>
+      <h2>{subscribers.length} email{subscribers.length === 1 ? '' : 's'} captured</h2>
       <p className="sub" style={{ marginTop: '0.3rem' }}>
         Reload this page any time to see the latest — nothing here is cached.
       </p>
@@ -143,7 +141,7 @@ async function AdminPanel({ adminKey, errorCode, doneAction }) {
         }}
       >
         <input type="hidden" name="key" value={adminKey} />
-        <input type="hidden" name="redirect" value={redirect} />
+        <input type="hidden" name="redirect" value={redirectTo} />
         <input
           type="email"
           name="email"
@@ -172,12 +170,13 @@ async function AdminPanel({ adminKey, errorCode, doneAction }) {
         </button>
       </form>
       <p className="sub" style={{ marginTop: '0.5rem', fontSize: '0.8rem' }}>
-        Use this once someone subscribes through Stan Store — paste their email and grant unlimited access. Revoke it the same way if a subscription ends.
+        Use this once someone subscribes through Stan Store — paste their email and grant
+        unlimited access. Revoke it the same way if a subscription ends.
       </p>
 
       {subscribers.length === 0 ? (
         <p className="sub" style={{ marginTop: '1.2rem' }}>
-          No one has used a free check yet. Once someone does, they&apos;ll show up here.
+          No one has used a free credit yet. Once someone does, they&apos;ll show up here.
         </p>
       ) : (
         <div style={{ marginTop: '1.2rem', overflowX: 'auto' }}>
@@ -185,21 +184,23 @@ async function AdminPanel({ adminKey, errorCode, doneAction }) {
             <thead>
               <tr>
                 <th style={thStyle}>Email</th>
-                <th style={thStyle}>Checks used</th>
+                <th style={thStyle}>Credits used</th>
                 <th style={thStyle}>Access</th>
               </tr>
             </thead>
             <tbody>
-              {subscribers.map((s) => (
-                <tr key={s.email}>
-                  <td style={tdStyle}>{s.email}</td>
-                  <td style={tdStyle}>{s.paid ? '—' : `${s.used} of ${FREE_CREDITS}`}</td>
+              {subscribers.map((row) => (
+                <tr key={row.email}>
+                  <td style={tdStyle}>{row.email}</td>
                   <td style={tdStyle}>
-                    {s.paid ? (
+                    {row.paid ? '—' : `${row.used} of ${FREE_CREDITS}`}
+                  </td>
+                  <td style={tdStyle}>
+                    {row.paid ? (
                       <span className="pill pass">Unlimited</span>
                     ) : (
-                      <span className={`pill ${s.remaining > 0 ? 'pass' : 'weak'}`}>
-                        {s.remaining > 0 ? `${s.remaining} left` : 'out'}
+                      <span className={`pill ${row.remaining > 0 ? 'pass' : 'weak'}`}>
+                        {row.remaining > 0 ? `${row.remaining} left` : 'out'}
                       </span>
                     )}
                   </td>
