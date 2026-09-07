@@ -1,15 +1,42 @@
 import { Redis as UpstashRedis } from '@upstash/redis';
 import IORedis from 'ioredis';
 
-// Every email gets this many free checks total, shared across both tools
-// (Title & Overview and Skills Optimizer both draw from the same pool).
-export const FREE_CREDITS = 5;
+// Every email gets this many free credits total, shared across every tool that
+// calls the AI (Title & Overview, Job Match's audit + match modes, and the
+// Proposal Writer) — each successful generation deducts one credit from the same
+// pool, regardless of which tool spent it.
+export const FREE_CREDITS = 10;
 
 // How long a 6-digit verification code is valid for after it's emailed out.
 const CODE_TTL_SECONDS = 10 * 60;
 // Minimum gap between two "send me a code" requests for the same email, so the
 // resend button (or a bot) can't be hammered to spam someone's inbox.
 const RESEND_COOLDOWN_SECONDS = 45;
+
+// Soft daily cap on how many different not-yet-verified emails can request a code
+// from the same IP address. Deliberately generous — a shared home/office network
+// or someone mashing "resend" a few times should never hit this — it's meant to
+// slow down a script spinning up a pile of throwaway inboxes from one machine
+// specifically to keep re-claiming free credits, not to police normal use.
+const SIGNUP_IP_LIMIT = 10;
+const SIGNUP_IP_WINDOW_SECONDS = 24 * 60 * 60;
+
+// A quick, low-effort filter for the most common "temp inbox" services people
+// reach for specifically to farm free credits with a throwaway address. This list
+// isn't exhaustive — new disposable-email domains pop up constantly, and someone
+// determined enough can still just make more real Gmail accounts — but it blocks
+// the obvious, well-known ones for free, which stops the laziest version of the
+// abuse without adding any friction for real users.
+const DISPOSABLE_EMAIL_DOMAINS = new Set([
+  'mailinator.com', 'guerrillamail.com', 'guerrillamail.info', 'guerrillamail.biz',
+  'sharklasers.com', '10minutemail.com', '10minutemail.net', 'tempmail.com',
+  'temp-mail.org', 'temp-mail.io', 'throwawaymail.com', 'yopmail.com', 'yopmail.net',
+  'trashmail.com', 'getnada.com', 'dispostable.com', 'fakeinbox.com', 'maildrop.cc',
+  'mintemail.com', 'mohmal.com', 'moakt.com', 'emailondeck.com', 'tempinbox.com',
+  'spamgourmet.com', 'mailnesia.com', 'mailcatch.com', 'mail-temp.com',
+  'discard.email', 'discardmail.com', 'tmpmail.org', 'tmpmail.net', 'tmpeml.com',
+  'burnermail.io', 'crazymailing.com', 'inboxkitten.com', 'harakirimail.com',
+]);
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -71,6 +98,33 @@ export function isValidEmail(email) {
   return EMAIL_RE.test(normalizeEmail(email));
 }
 
+// See DISPOSABLE_EMAIL_DOMAINS above for what this catches and doesn't.
+export function isDisposableEmail(email) {
+  const domain = normalizeEmail(email).split('@')[1] || '';
+  return DISPOSABLE_EMAIL_DOMAINS.has(domain);
+}
+
+// Call before sending a verification code to a not-yet-verified email. Fails open
+// (allows the request) if the store isn't reachable — a database hiccup should
+// never be the reason someone can't verify their real email.
+export async function checkSignupRateLimit(ip) {
+  if (!ip) return { allowed: true };
+  const { client } = getRedis();
+  if (!client) return { allowed: true };
+  const day = new Date().toISOString().slice(0, 10);
+  const key = `signup_ip:${day}:${ip}`;
+  try {
+    const count = await client.incr(key);
+    if (count === 1) {
+      await client.expire(key, SIGNUP_IP_WINDOW_SECONDS);
+    }
+    return { allowed: count <= SIGNUP_IP_LIMIT };
+  } catch (err) {
+    console.warn('Signup rate-limit check failed — allowing through:', err?.message || err);
+    return { allowed: true };
+  }
+}
+
 function generateCode() {
   return String(Math.floor(100000 + Math.random() * 900000)); // 6 digits
 }
@@ -107,10 +161,13 @@ async function sendEmail({ to, subject, text, html }) {
 }
 
 // --- Email verification ---------------------------------------------------------
-// Before an email gets any free checks at all, it has to prove it can receive mail:
+// Before an email gets any free credits at all, it has to prove it can receive mail:
 // we email it a 6-digit code and it has to be typed back in. This is the step that
-// stops someone from typing in a made-up or someone-else's email just to get 5 free
-// checks — a plain format check alone can't catch that.
+// stops someone from typing in a made-up or someone-else's email just to get free
+// credits — a plain format check alone can't catch that. It also raises the bar
+// against multi-email abuse: combined with the disposable-domain block and the
+// per-IP signup limit above, someone would need a pile of real, working inboxes to
+// keep re-claiming free credits — not impossible, but no longer a five-second script.
 
 export async function isEmailVerified(email) {
   const { client } = getRedis();
@@ -183,7 +240,7 @@ export async function checkVerificationCode(email, code) {
 // --- Paid / unlimited access ------------------------------------------------------
 // There's no in-app checkout yet — subscriptions are sold through Stan Store, and
 // Rey grants access by hand from the private /admin page once he sees a sale come
-// through. Once an email is marked paid here, it skips the 5-check cap entirely.
+// through. Once an email is marked paid here, it skips the free-credit cap entirely.
 
 export async function isPaidSubscriber(email) {
   const { client } = getRedis();
@@ -225,8 +282,8 @@ export async function sendAccessGrantedEmail(email) {
     await sendEmail({
       to: normalized,
       subject: 'Your Profile Rewriter access is now unlimited',
-      text: `Good news — your Profile Rewriter access is now unlimited. No more 5-check limit on either tool.\n\nRun a check any time: https://profile-rewriter.vercel.app`,
-      html: `<p>Good news — your Profile Rewriter access is now <strong>unlimited</strong>. No more 5-check limit on either tool.</p><p>Run a check any time: <a href="https://profile-rewriter.vercel.app">https://profile-rewriter.vercel.app</a></p>`,
+      text: `Good news — your Profile Rewriter access is now unlimited. No more free-credit limit on any tool.\n\nRun a check any time: https://profile-rewriter.vercel.app`,
+      html: `<p>Good news — your Profile Rewriter access is now <strong>unlimited</strong>. No more free-credit limit on any tool.</p><p>Run a check any time: <a href="https://profile-rewriter.vercel.app">https://profile-rewriter.vercel.app</a></p>`,
     });
     return { sent: true };
   } catch (err) {
@@ -248,9 +305,9 @@ export async function revokeUnlimitedAccess(email) {
   }
 }
 
-// --- Free-check credits -----------------------------------------------------------
+// --- Free credits -----------------------------------------------------------------
 
-// Read-only: how many free checks does this email have left, without spending one.
+// Read-only: how many free credits does this email have left, without spending one.
 // If the credit store isn't configured yet, OR the store errors out for any reason,
 // this fails OPEN (allows the request) rather than blocking the tool entirely — a
 // database hiccup should never take the whole app down, it just means that one
@@ -284,7 +341,7 @@ export async function getCreditStatus(email) {
   }
 }
 
-// Every email that's ever used a free check, plus how many of their 5 they've used —
+// Every email that's ever used a free credit, plus how many of their 10 they've used —
 // powers the private /admin page so Rey can see his lead list without needing to
 // touch the Redis provider's own dashboard at all.
 export async function getAllSubscribers() {
