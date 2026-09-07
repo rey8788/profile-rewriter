@@ -382,6 +382,27 @@ button:focus-visible {
   line-height: 1.6;
   white-space: pre-wrap;
 }
+.tip-block {
+  margin-top: 0.9rem;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--gold);
+  border-radius: 8px;
+  padding: 0.75rem 0.9rem;
+  font-size: 0.88rem;
+  line-height: 1.5;
+  color: var(--ink);
+}
+.tip-block strong {
+  display: block;
+  color: var(--gold);
+  text-transform: uppercase;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  margin-bottom: 0.3rem;
+}
+
 .gaps {
   margin-top: 1.6rem;
   background: var(--weak-bg);
