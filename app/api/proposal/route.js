@@ -16,12 +16,18 @@ MY PROFILE OVERVIEW / SERVICES:
 ${services || '(not provided)'}
 
 Write the proposal using this structure, in this order:
-1. HOOK — open with something specific to this client's need, problem, or goal, pulled from the job post. Never start with a greeting, your name, or your biography. The goal: make the client think "this person actually read my post."
+1. HOOK — the first sentence must react to ONE concrete, specific detail lifted from the job post itself: a number, a tool name, a deadline, a platform, a phrase they used, a problem they described. Write it the way a person would type a quick reaction to that specific detail, not the way a consultant would explain why a category of work matters in general. Never start with a greeting, your name, or your biography. The goal: make the client think "this person actually read my post," not "this person read a lot of posts like mine."
 2. HELP — explain clearly how you would approach the real work described in the job post. Focus on the work they need done, not everything you've ever learned.
 3. PROOF — back up your single most relevant claim with one or two pieces of real evidence: similar experience, a specific tool or process, a measurable result, or a work sample — using only what's in my skills and overview above. Use this formula: state the claim, give the evidence, then briefly explain why that evidence matters for this job.
 4. NEXT STEP — end with a simple, natural invitation to keep the conversation going: a relevant question, an offer to walk through next steps, or your availability to start.
 
-Rules:
+Hook rules, because this is the part that most often reads as generic AI writing:
+- Never write a hook shaped like "[Doing this work] means/matters..." or "You need someone who can X, not just Y" or "X isn't just A, it's B." These sound like a pitch deck slide, not a person. If your draft hook contains the word "means" or "matters" as the verb that connects the client's need to a general truth, rewrite it.
+- Bad (generic, explains why the category of work is important): "Setting up Zendesk from scratch means getting the foundation right so it can grow with you." Good (reacts to one real detail from the post): "The part about needing this live before your holiday traffic hits is the piece I'd start with first, since a rushed Zendesk setup is where most of the rework happens later."
+- Bad: "You need someone who can own support and marketplace operations, not just follow a checklist." Good: "Running support across Vinted and eBay at the same time is exactly where sizing and authenticity questions start slipping through the cracks, so I'd want to get a shared reply library going for those first."
+- Keep the hook to one, maybe two sentences. If it takes three sentences to make the point, it's not a hook anymore, it's an introduction.
+
+Other rules:
 - Keep it concise, natural, and conversational, like a real person wrote it, not a template. Avoid generic freelancer phrases such as "I am hardworking," "I am dedicated," "I am the perfect candidate," or "I would love the opportunity" unless something like that is genuinely necessary.
 - Do not repeat the job post back to the client. Do not list every skill I have, only what's relevant to this job.
 - Do not create fake statistics, clients, achievements, certifications, or portfolio items.
