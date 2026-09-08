@@ -22,6 +22,7 @@ export default function Home() {
   const [creditsRemaining, setCreditsRemaining] = useState(null);
   const [unlimitedAccess, setUnlimitedAccess] = useState(false);
   const [result, setResult] = useState(emptyResult);
+  const [creditsTotal, setCreditsTotal] = useState(null);
   const [needsVerification, setNeedsVerification] = useState(false);
   const [codeSent, setCodeSent] = useState(false);
   const [verificationCode, setVerificationCode] = useState('');
@@ -43,6 +44,20 @@ export default function Home() {
       /* localStorage unavailable — carry over silently skipped */
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // The free-credit pool size can change automatically on a date (see credits.js),
+  // so grab the current number to show in the email hint before anyone submits
+  // anything, instead of hardcoding a number that could go stale.
+  useEffect(() => {
+    fetch('/api/credits-info')
+      .then((res) => res.json())
+      .then((data) => {
+        if (typeof data?.total === 'number') setCreditsTotal(data.total);
+      })
+      .catch(() => {
+        /* not critical — the hint just falls back to generic wording */
+      });
   }, []);
 
   function handleOverviewChange(e) {
@@ -90,11 +105,13 @@ export default function Home() {
           setNoCredits(true);
           setCreditsRemaining(0);
         }
+        if (typeof data?.total === 'number') setCreditsTotal(data.total);
         throw new Error(data?.message || 'Something went wrong. Please try again.');
       }
       setNeedsVerification(false);
       setResult(data);
       if (typeof data?.creditsRemaining === 'number') setCreditsRemaining(data.creditsRemaining);
+      if (typeof data?.creditsTotal === 'number') setCreditsTotal(data.creditsTotal);
       setUnlimitedAccess(Boolean(data?.unlimitedAccess));
     } catch (err) {
       setError(err.message || 'Something went wrong. Please try again.');
@@ -166,7 +183,7 @@ export default function Home() {
             <a href="/" className="active">Title &amp; Overview</a>
             <a href="/skills">Job Match</a>
           </nav>
-          <p className="eyebrow">Upwork Profile Builder</p>
+          <p className="eyebrow">Upwork Freelancer Toolkit</p>
           <h1>Title &amp; Overview Rewriter</h1>
           <p>
             For freelancers who aren&apos;t sure what to put in their title and overview, or
@@ -183,7 +200,10 @@ export default function Home() {
           <p className="sub">Nothing is invented. If something&apos;s missing, it gets flagged instead of made up.</p>
 
           <label htmlFor="email">
-            Email <span className="hint">(gets you 10 free credits, shared across every tool — no spam, just used to track usage)</span>
+            Email{' '}
+            <span className="hint">
+              (gets you {creditsTotal != null ? `${creditsTotal} free credits` : 'free credits'}, shared across every tool — no spam, just used to track usage)
+            </span>
           </label>
           <input
             id="email"
@@ -259,7 +279,7 @@ export default function Home() {
 
           {!unlimitedAccess && creditsRemaining !== null && !noCredits && !needsVerification && (
             <div style={{ fontSize: '0.8rem', color: 'var(--ink-muted)', marginTop: '-0.4rem' }}>
-              {creditsRemaining} of 10 free credits remaining, shared across every tool.{' '}
+              {creditsRemaining} of {creditsTotal ?? creditsRemaining} free credits remaining, shared across every tool.{' '}
               <a href={SUBSCRIBE_URL} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)', fontWeight: 600 }}>
                 Want unlimited checks? Subscribe &rarr;
               </a>
@@ -273,7 +293,7 @@ export default function Home() {
                 {sendingCode
                   ? 'Sending a 6-digit code to your email…'
                   : codeSent
-                  ? `We sent a 6-digit code to ${email.trim()}. Enter it below to unlock your 10 free credits.`
+                  ? `We sent a 6-digit code to ${email.trim()}. Enter it below to unlock your ${creditsTotal ?? ''} free credits.`
                   : 'We need to verify your email before unlocking your free credits.'}
               </p>
               <label htmlFor="verificationCode" style={{ marginTop: '0.8rem' }}>
@@ -326,7 +346,7 @@ export default function Home() {
             <div className="gaps" style={{ marginTop: '1rem' }}>
               <h3>You&apos;re out of free credits</h3>
               <p>
-                You&apos;ve used all 10 free credits, shared across every tool. Subscribe to
+                You&apos;ve used all {creditsTotal ?? 'your'} free credits, shared across every tool. Subscribe to
                 Profile Rewriter Unlimited to keep going as often as you want.
               </p>
               <a href={SUBSCRIBE_URL} target="_blank" rel="noopener noreferrer" className="btn" style={{ display: 'block', textDecoration: 'none', textAlign: 'center' }}>
@@ -392,7 +412,7 @@ export default function Home() {
 
       <footer>
         <div className="cta-strip">
-          <span>Built on the Upwork Profile Builder framework.</span>
+          <span>Built on my Upwork Profile Builder and Proposal Builder frameworks.</span>
           <a href="https://stan.store/reymags" target="_blank" rel="noopener noreferrer">
             More guides at my Stan Store →
           </a>
