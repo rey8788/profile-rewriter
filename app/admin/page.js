@@ -48,8 +48,7 @@ export default async function AdminPage({ searchParams }) {
       <section className="hero">
         <div className="hero-inner">
           <nav className="tool-nav">
-            <a href="/">Title &amp; Overview</a>
-            <a href="/skills">Job Match</a>
+            <a href="/">← Back to app</a>
           </nav>
           <p className="eyebrow">Upwork Freelancer Toolkit</p>
           <h1>Captured Emails</h1>
