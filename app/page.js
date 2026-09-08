@@ -444,9 +444,7 @@ export default function Home() {
             <div className="credit-line">
               {creditsRemaining} of {creditsTotal ?? creditsRemaining} free credits remaining, shared across every
               tab.{' '}
-              <a href={SUBSCRIBE_URL} target="_blank" rel="noopener noreferrer">
-                Want unlimited checks? Subscribe &rarr;
-              </a>
+              <a href={SUBSCRIBE_URL} target="_blank" rel="noopener noreferrer">Want unlimited checks? Subscribe &rarr;</a>
             </div>
           )}
 
@@ -500,13 +498,7 @@ export default function Home() {
                 You&apos;ve used all {creditsTotal ?? 'your'} free credits, shared across every tab. Subscribe to
                 Profile Rewriter Unlimited to keep going as often as you want.
               </p>
-              
-                href={SUBSCRIBE_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn"
-                style={{ display: 'block', textDecoration: 'none', textAlign: 'center' }}
-              >
+              <a href={SUBSCRIBE_URL} target="_blank" rel="noopener noreferrer" className="btn" style={{ display: 'block', textDecoration: 'none', textAlign: 'center' }}>
                 Subscribe for unlimited access &rarr;
               </a>
             </div>
