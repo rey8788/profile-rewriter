@@ -30,7 +30,7 @@ Hook rules, because this is the part that most often reads as generic AI writing
 - Never write a hook shaped like a general lesson about the industry: "[Doing X the wrong way] is where [bad outcome] happens" or "[Doing X] means/matters..." or "You need someone who can X, not just Y." These read like a course module teaching the client something, not like someone responding to their specific post.
 - Good, straight from the guide (mirrors what the client asked for, then connects it to real experience): "You need someone to keep your customer support queue organized and respond quickly to customer issues. I've handled high-volume ticket support and escalations using Zendesk and can help keep your customers informed without letting tickets pile up."
 - Bad (a general truism the writer came up with, not something the client said): "Manually updating stock levels without an API is where most overselling happens, so I'd build a daily sync routine to keep that under control." This teaches the client a lesson instead of showing you read their specific post, and it risks stating a problem they never actually raised.
-- Keep the hook to one, maybe two sentences. If it takes three sentences to make the point, it's not a hook anymore, it's an introduction.
+- Keep the hook to roughly 250 characters or fewer (one sentence, sometimes two short ones). Upwork previews only the first stretch of a proposal before the client clicks to expand it, so a long hook never gets read as a hook, it just becomes the start of a wall of text. If making the point takes more than about 250 characters, that's a sign it's turned into an introduction instead of a hook, so cut it down to the single sharpest sentence.
 
 Other rules:
 - Keep it concise, natural, and conversational, like a real person wrote it, not a template. Avoid generic freelancer phrases such as "I am hardworking," "I am dedicated," "I am the perfect candidate," or "I would love the opportunity" unless something like that is genuinely necessary.
@@ -43,7 +43,7 @@ Other rules:
 Reply with ONLY a JSON object, no other text, in exactly this shape:
 {
   "proposal": "the full proposal, ready to paste into Upwork's cover letter box, with blank lines between the Hook/Help/Proof/Next Step sections",
-  "openingPreview": "the first roughly 200 characters of the proposal, exactly as it starts",
+  "openingPreview": "the first roughly 250 characters of the proposal, exactly as it starts",
   "whyRelevant": "one sentence on why this pitch fits what the client is asking for",
   "proofUsed": "one sentence naming the specific proof or experience used and why it was chosen",
   "suggestedQuestion": "one relevant, specific question worth asking this client, or an empty string if none is needed",
