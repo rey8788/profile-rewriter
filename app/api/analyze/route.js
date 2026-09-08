@@ -115,9 +115,9 @@ export async function POST(req) {
     return Response.json(
       {
         error: 'no_credits',
-        message:
-          "You've used all 10 free credits, shared across every tool (title & overview, job match, and proposal writer). Subscribe to Profile Rewriter Unlimited for unlimited access.",
+        message: `You've used all ${creditStatus.total} free credits, shared across every tool (title & overview, job match, and proposal writer). Subscribe to Profile Rewriter Unlimited for unlimited access.`,
         remaining: 0,
+        total: creditStatus.total,
         subscribeUrl: 'https://stan.store/reymags/p/profile-rewriter--unlimited-access',
       },
       { status: 403 }
@@ -144,8 +144,8 @@ export async function POST(req) {
       );
     }
 
-    const { remaining, unlimited } = await consumeCredit(email);
-    return Response.json({ ...data, creditsRemaining: remaining, unlimitedAccess: Boolean(unlimited) });
+    const { remaining, total, unlimited } = await consumeCredit(email);
+    return Response.json({ ...data, creditsRemaining: remaining, creditsTotal: total, unlimitedAccess: Boolean(unlimited) });
   } catch (err) {
     console.error('analyze route error:', err);
     return Response.json(
