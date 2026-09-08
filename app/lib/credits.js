@@ -1,11 +1,26 @@
 import { Redis as UpstashRedis } from '@upstash/redis';
 import IORedis from 'ioredis';
 
-// Every email gets this many free credits total, shared across every tool that
-// calls the AI (Title & Overview, Job Match's audit + match modes, and the
-// Proposal Writer) — each successful generation deducts one credit from the same
-// pool, regardless of which tool spent it.
-export const FREE_CREDITS = 10;
+// Every email gets a free-credit pool, shared across every tool that calls the
+// AI (Title & Overview, Job Match's audit + match modes, and the Proposal
+// Writer) — each successful generation deducts one credit from the same pool,
+// regardless of which tool spent it.
+//
+// The pool size is time-based rather than a fixed constant: Rey's community
+// beta testers get a bigger pool through the end of September to really put
+// the tools through their paces, then everyone — beta testers and brand-new
+// signups alike — drops to the standard pool starting October 1. Nothing is
+// stored per-user for this, so nobody needs a one-time migration: the limit
+// is just computed fresh from today's date every time, which means a beta
+// tester who's already used more than the standard pool simply shows 0
+// remaining once the date passes, exactly like a new signup would.
+const BETA_FREE_CREDITS = 50;
+const STANDARD_FREE_CREDITS = 5;
+const BETA_CUTOVER = new Date('2026-10-01T00:00:00Z');
+
+export function getFreeCreditsLimit() {
+  return new Date() < BETA_CUTOVER ? BETA_FREE_CREDITS : STANDARD_FREE_CREDITS;
+}
 
 // How long a 6-digit verification code is valid for after it's emailed out.
 const CODE_TTL_SECONDS = 10 * 60;
@@ -314,39 +329,41 @@ export async function revokeUnlimitedAccess(email) {
 // request goes untracked. An unverified email is blocked here too, before we even
 // look at its credit balance.
 export async function getCreditStatus(email) {
+  const limit = getFreeCreditsLimit();
   const verified = await isEmailVerified(email);
   if (!verified) {
-    return { allowed: false, remaining: FREE_CREDITS, tracked: false, reason: 'not_verified' };
+    return { allowed: false, remaining: limit, total: limit, tracked: false, reason: 'not_verified' };
   }
 
   const paid = await isPaidSubscriber(email);
   if (paid) {
-    return { allowed: true, remaining: null, tracked: true, unlimited: true };
+    return { allowed: true, remaining: null, total: null, tracked: true, unlimited: true };
   }
 
   const { client } = getRedis();
   if (!client) {
     console.warn('Credit store not configured (no KV/Upstash/Redis env vars found) — allowing request untracked.');
-    return { allowed: true, remaining: FREE_CREDITS, tracked: false };
+    return { allowed: true, remaining: limit, total: limit, tracked: false };
   }
   const normalized = normalizeEmail(email);
   try {
     const raw = await client.get(`credits:${normalized}`);
     const used = Number(raw || 0);
-    const remaining = Math.max(0, FREE_CREDITS - used);
-    return { allowed: remaining > 0, remaining, tracked: true, reason: remaining > 0 ? null : 'no_credits' };
+    const remaining = Math.max(0, limit - used);
+    return { allowed: remaining > 0, remaining, total: limit, tracked: true, reason: remaining > 0 ? null : 'no_credits' };
   } catch (err) {
     console.warn('Credit store read failed — allowing request untracked:', err?.message || err);
-    return { allowed: true, remaining: FREE_CREDITS, tracked: false };
+    return { allowed: true, remaining: limit, total: limit, tracked: false };
   }
 }
 
-// Every email that's ever used a free credit, plus how many of their 10 they've used —
-// powers the private /admin page so Rey can see his lead list without needing to
-// touch the Redis provider's own dashboard at all.
+// Every email that's ever used a free credit, plus how many of their current pool
+// they've used — powers the private /admin page so Rey can see his lead list
+// without needing to touch the Redis provider's own dashboard at all.
 export async function getAllSubscribers() {
   const { client } = getRedis();
   if (!client) return [];
+  const limit = getFreeCreditsLimit();
   try {
     const emails = await client.smembers('subscriber_emails');
     const rows = await Promise.all(
@@ -356,7 +373,7 @@ export async function getAllSubscribers() {
           client.get(`paid:${email}`),
         ]);
         const used = Number(usedRaw || 0);
-        return { email, used, remaining: Math.max(0, FREE_CREDITS - used), paid: Boolean(paidRaw) };
+        return { email, used, remaining: Math.max(0, limit - used), paid: Boolean(paidRaw) };
       })
     );
     rows.sort((a, b) => a.email.localeCompare(b.email));
@@ -371,8 +388,9 @@ export async function getAllSubscribers() {
 // never charge a credit for a request that errored out. Paid emails skip the counter
 // entirely — they're never charged down and never run out.
 export async function consumeCredit(email) {
+  const limit = getFreeCreditsLimit();
   const { client } = getRedis();
-  if (!client) return { remaining: FREE_CREDITS, tracked: false };
+  if (!client) return { remaining: limit, total: limit, tracked: false };
   const normalized = normalizeEmail(email);
   try {
     const paid = await isPaidSubscriber(email);
@@ -382,7 +400,7 @@ export async function consumeCredit(email) {
       } catch (_) {
         /* non-critical — never fail the response over the lead list */
       }
-      return { remaining: null, tracked: true, unlimited: true };
+      return { remaining: null, total: null, tracked: true, unlimited: true };
     }
     const used = await client.incr(`credits:${normalized}`);
     try {
@@ -392,9 +410,9 @@ export async function consumeCredit(email) {
     } catch (_) {
       /* non-critical — never fail the response over the lead list */
     }
-    return { remaining: Math.max(0, FREE_CREDITS - used), tracked: true };
+    return { remaining: Math.max(0, limit - used), total: limit, tracked: true };
   } catch (err) {
     console.warn('Credit store write failed — not counted this time:', err?.message || err);
-    return { remaining: FREE_CREDITS, tracked: false };
+    return { remaining: limit, total: limit, tracked: false };
   }
 }
