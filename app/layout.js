@@ -1,9 +1,9 @@
 import './globals.css';
 
 export const metadata = {
-  title: 'Title & Overview Rewriter',
+  title: 'Upwork Freelancer Toolkit',
   description:
-    'Check your Upwork title and overview against the Profile Builder framework and get the weak parts rewritten, using only what you gave it.',
+    'Scan your Upwork profile for completeness, rewrite your title and overview against the Profile Builder framework, match yourself to a job post, and get a proposal written for you.',
 };
 
 export default function RootLayout({ children }) {
