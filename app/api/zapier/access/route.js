@@ -1,4 +1,4 @@
-import { isValidEmail, grantUnlimitedAccess, revokeUnlimitedAccess, sendAccessGrantedEmail } from '../../../lib/credits';
+import { isValidEmail, grantUnlimitedAccess, revokeUnlimitedAccess, sendAccessGrantedEmail, getFreeCreditsLimit } from '../../../lib/credits';
 
 function htmlPage(title, message, ok) {
   return new Response(
@@ -52,7 +52,7 @@ async function applyAccessChange({ providedKey, email, action }) {
     title: action === 'revoke' ? 'Access revoked' : 'Access granted',
     message:
       action === 'revoke'
-        ? `${email} is back to the normal 10 free credits.`
+        ? `${email} is back to the normal ${getFreeCreditsLimit()} free credits.`
         : `${email} now has unlimited access to both tools.`,
   };
 }
