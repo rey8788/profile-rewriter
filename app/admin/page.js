@@ -1,4 +1,4 @@
-import { getAllSubscribers, FREE_CREDITS } from '../lib/credits';
+import { getAllSubscribers, getFreeCreditsLimit } from '../lib/credits';
 
 const thStyle = {
   textAlign: 'left',
@@ -25,10 +25,11 @@ const ERROR_MESSAGES = {
   failed: 'Something went wrong saving that — please try again.',
 };
 
-const DONE_MESSAGES = {
-  grant: 'Unlimited access granted.',
-  revoke: 'Unlimited access revoked — back to the normal 10 free credits.',
-};
+function doneMessage(action, limit) {
+  if (action === 'grant') return 'Unlimited access granted.';
+  if (action === 'revoke') return `Unlimited access revoked — back to the normal ${limit} free credits.`;
+  return 'Saved.';
+}
 
 // Always fetch fresh — this list changes as people use the tools, and it's never
 // something we want a browser or CDN caching.
@@ -50,11 +51,11 @@ export default async function AdminPage({ searchParams }) {
             <a href="/">Title &amp; Overview</a>
             <a href="/skills">Job Match</a>
           </nav>
-          <p className="eyebrow">Upwork Profile Builder</p>
+          <p className="eyebrow">Upwork Freelancer Toolkit</p>
           <h1>Captured Emails</h1>
           <p>
             A private list of everyone who has used a free credit on any tool, how many of
-            their 10 they have left, and a way to grant unlimited access to paying subscribers.
+            their {getFreeCreditsLimit()} they have left, and a way to grant unlimited access to paying subscribers.
           </p>
         </div>
       </section>
@@ -122,7 +123,7 @@ async function SubscriberTable({ adminKey, errorCode, doneAction }) {
       )}
       {!errorCode && doneAction && (
         <div className="gaps" style={{ marginTop: '1rem' }}>
-          <p style={{ margin: 0 }}>{DONE_MESSAGES[doneAction] || 'Saved.'}</p>
+          <p style={{ margin: 0 }}>{doneMessage(doneAction, getFreeCreditsLimit())}</p>
         </div>
       )}
 
@@ -193,7 +194,7 @@ async function SubscriberTable({ adminKey, errorCode, doneAction }) {
                 <tr key={row.email}>
                   <td style={tdStyle}>{row.email}</td>
                   <td style={tdStyle}>
-                    {row.paid ? '—' : `${row.used} of ${FREE_CREDITS}`}
+                    {row.paid ? '—' : `${row.used} of ${getFreeCreditsLimit()}`}
                   </td>
                   <td style={tdStyle}>
                     {row.paid ? (
