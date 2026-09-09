@@ -69,7 +69,6 @@ export default function Home() {
 
   // ---- Tab 1: profile scan ----
   const [scanImages, setScanImages] = useState([]); // [{ name, size, dataUrl }]
-  const [scanExperience, setScanExperience] = useState(''); // '', 'entry', 'intermediate', 'expert'
   const [scanLoading, setScanLoading] = useState(false);
   const [scanError, setScanError] = useState('');
   const [scanResult, setScanResult] = useState(null);
@@ -266,7 +265,6 @@ export default function Home() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           images: scanImages.map((img) => img.dataUrl),
-          experienceLevel: scanExperience,
           email: email.trim(),
         }),
       });
@@ -518,8 +516,6 @@ export default function Home() {
             scanImages={scanImages}
             onFilesSelected={handleFilesSelected}
             onRemoveImage={removeScanImage}
-            experienceLevel={scanExperience}
-            onExperienceChange={setScanExperience}
             onSubmit={handleScan}
             loading={scanLoading}
             error={scanError}
@@ -881,8 +877,6 @@ function ScanTab({
   scanImages,
   onFilesSelected,
   onRemoveImage,
-  experienceLevel,
-  onExperienceChange,
   onSubmit,
   loading,
   error,
@@ -891,17 +885,13 @@ function ScanTab({
   onSkip,
 }) {
   const canSubmit = emailValid && scanImages.length > 0 && !loading;
-  const EXPERIENCE_OPTIONS = [
-    { value: 'entry', label: 'Entry' },
-    { value: 'intermediate', label: 'Intermediate' },
-    { value: 'expert', label: 'Expert' },
-  ];
   return (
     <form className="card" onSubmit={onSubmit}>
       <h2>Upload your profile screenshot</h2>
       <p className="sub">
         A full-page screenshot works best. If your profile is long, split it into 2–3 screenshots and upload them
-        together — nothing gets invented for parts we can&apos;t see.
+        together — nothing gets invented for parts we can&apos;t see. Include your work history and completed jobs
+        if you can — that&apos;s what unlocks a suggested rate range based on your actual experience.
       </p>
 
       <label htmlFor="scan-upload" className="dropzone">
@@ -930,28 +920,6 @@ function ScanTab({
           ))}
         </ul>
       )}
-
-      <label style={{ marginBottom: '0.4rem' }}>
-        Your Upwork experience level <span className="hint">(optional — unlocks a suggested rate range)</span>
-      </label>
-      <div style={{ display: 'flex', gap: '0.6rem', marginBottom: '0.2rem', flexWrap: 'wrap' }}>
-        {EXPERIENCE_OPTIONS.map((opt) => (
-          <button
-            key={opt.value}
-            type="button"
-            onClick={() => onExperienceChange(experienceLevel === opt.value ? '' : opt.value)}
-            className="btn"
-            style={{
-              marginTop: 0,
-              background: experienceLevel === opt.value ? 'var(--accent)' : 'var(--paper)',
-              color: experienceLevel === opt.value ? 'var(--accent-ink)' : 'var(--ink)',
-              border: experienceLevel === opt.value ? 'none' : '1px solid var(--line)',
-            }}
-          >
-            {opt.label}
-          </button>
-        ))}
-      </div>
 
       <button className="btn" type="submit" disabled={!canSubmit}>
         {loading ? 'Scanning your profile…' : 'Scan my profile'}
