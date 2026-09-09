@@ -5,13 +5,11 @@ const ALLOWED_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/gif'];
 const MAX_IMAGES = 4;
 const MAX_BASE64_CHARS_PER_IMAGE = 7_000_000; // ~5MB raw, base64 runs about 4/3 bigger
 
-const VALID_EXPERIENCE_LEVELS = ['entry', 'intermediate', 'expert'];
-
 // General-market reference ranges, not Upwork-sourced data — used only to keep the
 // model's rate suggestions grounded in a realistic anchor instead of guessing freely.
 // Upwork is a global marketplace so real rates skew below US W2-style averages,
 // especially at entry level, which is already reflected in these ranges.
-const RATE_REFERENCE = `Reference hourly-rate ranges by category and Upwork experience level (broad market anchors, not exact figures — a specific profile can reasonably land outside these, especially for a niche specialty):
+const RATE_REFERENCE = `Reference hourly-rate ranges by category and experience level (broad market anchors, not exact figures — a specific profile can reasonably land outside these, especially for a niche specialty):
 - Data entry / admin support: Entry $6-12, Intermediate $12-18, Expert $18-25
 - Customer service / virtual assistant: Entry $8-15, Intermediate $15-25, Expert $25-40+
 - Social media management: Entry $12-20, Intermediate $20-35, Expert $35-60+
@@ -23,7 +21,7 @@ const RATE_REFERENCE = `Reference hourly-rate ranges by category and Upwork expe
 - Project management: Entry $18-28, Intermediate $28-50, Expert $50-90+
 - Web / software development: Entry $20-35, Intermediate $35-60, Expert $60-120+`;
 
-function buildScanPrompt(experienceLevel) {
+function buildScanPrompt() {
   return `You are checking screenshots of an Upwork freelancer profile page for completeness, not writing quality. Upwork's own "Profile Completeness" meter should already say 100% before this matters much, so treat this as a second pair of eyes, not a contradiction of that meter.
 
 Look only at what is actually visible in the image(s) I'm giving you. Never assume or invent that something exists if you can't see it, and never assume something is missing just because it isn't in the part of the page shown. If a section's presence can't be confirmed from the screenshot(s), mark it "not_visible" rather than guessing.
@@ -47,15 +45,15 @@ For each, decide "pass" (clearly present and filled in), "flag" (visibly present
 Then write a short plain-English summary (1-2 sentences, like you're telling a friend) and a flaggedItems list naming only the genuine "flag" items in plain language. Leave flaggedItems empty if everything checkable looks complete.
 
 RATE SUGGESTION
-Separate from the completeness check above: look at the title, skills, and overview visible in the screenshot(s) and see if they clearly point to ONE category from the reference list below. Do not force a match. If what's visible is too generic, mixes several unrelated categories evenly, or too little of the profile is shown to tell, leave rateSuggestion entirely null rather than guessing at a category.
+Separate from the completeness check above: figure out, using only what's actually visible in the screenshot(s), both (a) which ONE category from the reference list below this profile fits, and (b) roughly what experience level (entry, intermediate, or expert) the freelancer's real work history supports. Do not force either one. If either can't be honestly determined from what's shown, leave rateSuggestion entirely null rather than guessing.
 
-The freelancer told you their own Upwork experience level (their self-selection, not something to infer): ${VALID_EXPERIENCE_LEVELS.includes(experienceLevel) ? experienceLevel : 'not provided'}.
+To judge experience level, weigh actual evidence of work history and skill depth, not job titles or self-description: total jobs completed and total hours worked if shown, Job Success Score and client reviews/ratings if shown, the depth and breadth of the portfolio or work samples, how much relevant employment history is listed, and how specialized vs. broad the listed skills are. A profile showing many completed jobs, strong ratings, and a specialized skill set reads as expert even if the person never says so. A profile with little to no work history visible, few or generic skills, and no completed jobs shown reads as entry. Most real profiles fall in between, read as intermediate unless the evidence clearly points higher or lower. If the screenshot(s) don't show enough of this (e.g. only the top of the profile with no work history section visible), don't guess, that's a case for leaving rateSuggestion null.
 
 ${RATE_REFERENCE}
 
-If a category is clearly identifiable AND an experience level was given, suggest a realistic hourly rate range using the matching reference row as your anchor point, adjusted slightly only if something specific and visible (a clear specialty, an unusually strong portfolio) genuinely supports going a bit outside it, never invented. If the screenshot(s) also show a rate the freelancer has actually set, compare it to your suggested range and say so plainly in the note (e.g. it looks low for their level, it looks reasonable, it looks high but could be justified by X visible in the profile) without being preachy about it, just a factual heads up they can act on or ignore.
+If a category is clearly identifiable AND you can honestly estimate an experience level from real evidence, suggest a realistic hourly rate range using the matching reference row as your anchor point, adjusted slightly only if something specific and visible (a clear specialty, an unusually strong portfolio, unusually high or low Job Success Score) genuinely supports going a bit outside it, never invented. If the screenshot(s) also show a rate the freelancer has actually set, compare it to your suggested range and say so plainly in the note (e.g. it looks low for their level, it looks reasonable, it looks high but could be justified by X visible in the profile) without being preachy about it, just a factual heads up they can act on or ignore. In the note, briefly name the actual signal you used (e.g. "based on your 40+ completed jobs and 98% Job Success Score" or "based on the skills and portfolio shown, since work history wasn't visible in these screenshots") so it's clear this wasn't a guess.
 
-If no experience level was given, or no category can be honestly identified, set rateSuggestion to null. Never invent a category or a number that isn't grounded in what's actually visible plus the reference ranges above.
+If either the category or the experience level can't be honestly determined from what's visible, set rateSuggestion to null. Never invent a category, an experience level, or a number that isn't grounded in what's actually visible plus the reference ranges above.
 
 Never use an em dash (—) anywhere in the summary or notes. Use a period, a comma, or a simple word like "and" or "but" instead.
 
@@ -79,12 +77,12 @@ Reply with ONLY a JSON object, no other text, in exactly this shape:
   "flaggedItems": ["short phrases naming genuinely incomplete sections"],
   "rateSuggestion": {
     "category": "the matched category name, or null if none was identifiable",
-    "experienceLevel": "entry, intermediate, or expert — echo back what was given, or null",
+    "experienceLevel": "entry, intermediate, or expert, based on the real work-history evidence you found, or null if it couldn't be honestly estimated",
     "suggestedRange": "e.g. $18-$28/hr, or null",
-    "note": "one short sentence explaining the suggestion, or comparing it to their current rate if one is visible, or null"
+    "note": "one short sentence naming the actual signal used (jobs completed, Job Success Score, portfolio, skills) and explaining the suggestion, or comparing it to their current rate if one is visible, or null"
   }
 }
-If rateSuggestion cannot be honestly filled in (no experience level given, or no clear category), set the whole rateSuggestion value to null rather than filling its fields with guesses.`;
+If rateSuggestion cannot be honestly filled in (no clear category, or not enough visible evidence to estimate experience level), set the whole rateSuggestion value to null rather than filling its fields with guesses.`;
 }
 
 function extractJson(text) {
@@ -139,8 +137,6 @@ export async function POST(req) {
 
   const email = typeof body?.email === 'string' ? body.email.trim().slice(0, 200) : '';
   const rawImages = Array.isArray(body?.images) ? body.images.slice(0, MAX_IMAGES + 1) : [];
-  const experienceLevelRaw = typeof body?.experienceLevel === 'string' ? body.experienceLevel.trim().toLowerCase() : '';
-  const experienceLevel = VALID_EXPERIENCE_LEVELS.includes(experienceLevelRaw) ? experienceLevelRaw : '';
 
   if (!isValidEmail(email)) {
     return Response.json(
@@ -208,7 +204,7 @@ export async function POST(req) {
         type: 'image',
         source: { type: 'base64', media_type: img.mediaType, data: img.data },
       })),
-      { type: 'text', text: buildScanPrompt(experienceLevel) },
+      { type: 'text', text: buildScanPrompt() },
     ];
 
     const message = await client.messages.create({
