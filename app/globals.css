@@ -619,6 +619,42 @@ button:focus-visible {
   margin-bottom: 0.3rem;
 }
 
+.rate-suggestion {
+  margin-top: 1.1rem;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--gold);
+  border-radius: 10px;
+  padding: 0.9rem 1.1rem;
+}
+.rate-suggestion-label {
+  color: var(--gold);
+  text-transform: uppercase;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+.rate-suggestion-value {
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 1.9rem;
+  font-weight: 700;
+  line-height: 1.2;
+  margin-top: 0.2rem;
+  font-variant-numeric: tabular-nums;
+}
+.rate-suggestion-meta {
+  font-size: 0.85rem;
+  color: var(--ink-muted);
+  text-transform: capitalize;
+  margin-top: 0.15rem;
+}
+.rate-suggestion-note {
+  font-size: 0.87rem;
+  color: var(--ink-muted);
+  margin-top: 0.5rem;
+  line-height: 1.5;
+}
+
 .gaps {
   margin-top: 1.6rem;
   background: var(--weak-bg);
