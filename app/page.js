@@ -69,6 +69,7 @@ export default function Home() {
 
   // ---- Tab 1: profile scan ----
   const [scanImages, setScanImages] = useState([]); // [{ name, size, dataUrl }]
+  const [scanExperience, setScanExperience] = useState(''); // '', 'entry', 'intermediate', 'expert'
   const [scanLoading, setScanLoading] = useState(false);
   const [scanError, setScanError] = useState('');
   const [scanResult, setScanResult] = useState(null);
@@ -263,7 +264,11 @@ export default function Home() {
       const res = await fetch('/api/scan-profile', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ images: scanImages.map((img) => img.dataUrl), email: email.trim() }),
+        body: JSON.stringify({
+          images: scanImages.map((img) => img.dataUrl),
+          experienceLevel: scanExperience,
+          email: email.trim(),
+        }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -444,7 +449,9 @@ export default function Home() {
             <div className="credit-line">
               {creditsRemaining} of {creditsTotal ?? creditsRemaining} free credits remaining, shared across every
               tab.{' '}
-              <a href={SUBSCRIBE_URL} target="_blank" rel="noopener noreferrer">Want unlimited checks? Subscribe &rarr;</a>
+              <a href={SUBSCRIBE_URL} target="_blank" rel="noopener noreferrer">
+                Want unlimited checks? Subscribe &rarr;
+              </a>
             </div>
           )}
 
@@ -511,6 +518,8 @@ export default function Home() {
             scanImages={scanImages}
             onFilesSelected={handleFilesSelected}
             onRemoveImage={removeScanImage}
+            experienceLevel={scanExperience}
+            onExperienceChange={setScanExperience}
             onSubmit={handleScan}
             loading={scanLoading}
             error={scanError}
@@ -577,6 +586,19 @@ export default function Home() {
               <ChecklistRow key={i} item={row.item} status={row.status} note={row.note} />
             ))}
           </div>
+          {scanResult.rateSuggestion && scanResult.rateSuggestion.suggestedRange && (
+            <div className="rate-suggestion">
+              <div className="rate-suggestion-label">Suggested rate</div>
+              <div className="rate-suggestion-value">{scanResult.rateSuggestion.suggestedRange}</div>
+              <div className="rate-suggestion-meta">
+                {scanResult.rateSuggestion.category}
+                {scanResult.rateSuggestion.experienceLevel ? ` · ${scanResult.rateSuggestion.experienceLevel}` : ''}
+              </div>
+              {scanResult.rateSuggestion.note && (
+                <div className="rate-suggestion-note">{scanResult.rateSuggestion.note}</div>
+              )}
+            </div>
+          )}
           {Array.isArray(scanResult.flaggedItems) && scanResult.flaggedItems.length > 0 && (
             <div className="gaps" style={{ marginTop: '1.4rem' }}>
               <h3>Worth fixing</h3>
@@ -854,8 +876,26 @@ function Modal({ title, subtitle, onClose, children, footer }) {
   );
 }
 
-function ScanTab({ emailValid, scanImages, onFilesSelected, onRemoveImage, onSubmit, loading, error, hasResult, onViewResults, onSkip }) {
+function ScanTab({
+  emailValid,
+  scanImages,
+  onFilesSelected,
+  onRemoveImage,
+  experienceLevel,
+  onExperienceChange,
+  onSubmit,
+  loading,
+  error,
+  hasResult,
+  onViewResults,
+  onSkip,
+}) {
   const canSubmit = emailValid && scanImages.length > 0 && !loading;
+  const EXPERIENCE_OPTIONS = [
+    { value: 'entry', label: 'Entry' },
+    { value: 'intermediate', label: 'Intermediate' },
+    { value: 'expert', label: 'Expert' },
+  ];
   return (
     <form className="card" onSubmit={onSubmit}>
       <h2>Upload your profile screenshot</h2>
@@ -890,6 +930,28 @@ function ScanTab({ emailValid, scanImages, onFilesSelected, onRemoveImage, onSub
           ))}
         </ul>
       )}
+
+      <label style={{ marginBottom: '0.4rem' }}>
+        Your Upwork experience level <span className="hint">(optional — unlocks a suggested rate range)</span>
+      </label>
+      <div style={{ display: 'flex', gap: '0.6rem', marginBottom: '0.2rem', flexWrap: 'wrap' }}>
+        {EXPERIENCE_OPTIONS.map((opt) => (
+          <button
+            key={opt.value}
+            type="button"
+            onClick={() => onExperienceChange(experienceLevel === opt.value ? '' : opt.value)}
+            className="btn"
+            style={{
+              marginTop: 0,
+              background: experienceLevel === opt.value ? 'var(--accent)' : 'var(--paper)',
+              color: experienceLevel === opt.value ? 'var(--accent-ink)' : 'var(--ink)',
+              border: experienceLevel === opt.value ? 'none' : '1px solid var(--line)',
+            }}
+          >
+            {opt.label}
+          </button>
+        ))}
+      </div>
 
       <button className="btn" type="submit" disabled={!canSubmit}>
         {loading ? 'Scanning your profile…' : 'Scan my profile'}
