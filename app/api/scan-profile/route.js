@@ -5,7 +5,25 @@ const ALLOWED_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/gif'];
 const MAX_IMAGES = 4;
 const MAX_BASE64_CHARS_PER_IMAGE = 7_000_000; // ~5MB raw, base64 runs about 4/3 bigger
 
-function buildScanPrompt() {
+const VALID_EXPERIENCE_LEVELS = ['entry', 'intermediate', 'expert'];
+
+// General-market reference ranges, not Upwork-sourced data — used only to keep the
+// model's rate suggestions grounded in a realistic anchor instead of guessing freely.
+// Upwork is a global marketplace so real rates skew below US W2-style averages,
+// especially at entry level, which is already reflected in these ranges.
+const RATE_REFERENCE = `Reference hourly-rate ranges by category and Upwork experience level (broad market anchors, not exact figures — a specific profile can reasonably land outside these, especially for a niche specialty):
+- Data entry / admin support: Entry $6-12, Intermediate $12-18, Expert $18-25
+- Customer service / virtual assistant: Entry $8-15, Intermediate $15-25, Expert $25-40+
+- Social media management: Entry $12-20, Intermediate $20-35, Expert $35-60+
+- Bookkeeping / accounting support: Entry $15-20, Intermediate $20-35, Expert $35-60+
+- Content writing / copywriting: Entry $15-25, Intermediate $25-45, Expert $45-80+
+- Graphic design: Entry $15-25, Intermediate $25-45, Expert $45-85+
+- Video editing: Entry $15-25, Intermediate $25-45, Expert $45-85+
+- SEO: Entry $15-25, Intermediate $25-50, Expert $50-90+
+- Project management: Entry $18-28, Intermediate $28-50, Expert $50-90+
+- Web / software development: Entry $20-35, Intermediate $35-60, Expert $60-120+`;
+
+function buildScanPrompt(experienceLevel) {
   return `You are checking screenshots of an Upwork freelancer profile page for completeness, not writing quality. Upwork's own "Profile Completeness" meter should already say 100% before this matters much, so treat this as a second pair of eyes, not a contradiction of that meter.
 
 Look only at what is actually visible in the image(s) I'm giving you. Never assume or invent that something exists if you can't see it, and never assume something is missing just because it isn't in the part of the page shown. If a section's presence can't be confirmed from the screenshot(s), mark it "not_visible" rather than guessing.
@@ -28,6 +46,17 @@ For each, decide "pass" (clearly present and filled in), "flag" (visibly present
 
 Then write a short plain-English summary (1-2 sentences, like you're telling a friend) and a flaggedItems list naming only the genuine "flag" items in plain language. Leave flaggedItems empty if everything checkable looks complete.
 
+RATE SUGGESTION
+Separate from the completeness check above: look at the title, skills, and overview visible in the screenshot(s) and see if they clearly point to ONE category from the reference list below. Do not force a match. If what's visible is too generic, mixes several unrelated categories evenly, or too little of the profile is shown to tell, leave rateSuggestion entirely null rather than guessing at a category.
+
+The freelancer told you their own Upwork experience level (their self-selection, not something to infer): ${VALID_EXPERIENCE_LEVELS.includes(experienceLevel) ? experienceLevel : 'not provided'}.
+
+${RATE_REFERENCE}
+
+If a category is clearly identifiable AND an experience level was given, suggest a realistic hourly rate range using the matching reference row as your anchor point, adjusted slightly only if something specific and visible (a clear specialty, an unusually strong portfolio) genuinely supports going a bit outside it, never invented. If the screenshot(s) also show a rate the freelancer has actually set, compare it to your suggested range and say so plainly in the note (e.g. it looks low for their level, it looks reasonable, it looks high but could be justified by X visible in the profile) without being preachy about it, just a factual heads up they can act on or ignore.
+
+If no experience level was given, or no category can be honestly identified, set rateSuggestion to null. Never invent a category or a number that isn't grounded in what's actually visible plus the reference ranges above.
+
 Never use an em dash (—) anywhere in the summary or notes. Use a period, a comma, or a simple word like "and" or "but" instead.
 
 Reply with ONLY a JSON object, no other text, in exactly this shape:
@@ -47,8 +76,15 @@ Reply with ONLY a JSON object, no other text, in exactly this shape:
     {"item": "Languages", "status": "...", "note": "..."},
     {"item": "Availability / badges", "status": "...", "note": "..."}
   ],
-  "flaggedItems": ["short phrases naming genuinely incomplete sections"]
-}`;
+  "flaggedItems": ["short phrases naming genuinely incomplete sections"],
+  "rateSuggestion": {
+    "category": "the matched category name, or null if none was identifiable",
+    "experienceLevel": "entry, intermediate, or expert — echo back what was given, or null",
+    "suggestedRange": "e.g. $18-$28/hr, or null",
+    "note": "one short sentence explaining the suggestion, or comparing it to their current rate if one is visible, or null"
+  }
+}
+If rateSuggestion cannot be honestly filled in (no experience level given, or no clear category), set the whole rateSuggestion value to null rather than filling its fields with guesses.`;
 }
 
 function extractJson(text) {
@@ -103,6 +139,8 @@ export async function POST(req) {
 
   const email = typeof body?.email === 'string' ? body.email.trim().slice(0, 200) : '';
   const rawImages = Array.isArray(body?.images) ? body.images.slice(0, MAX_IMAGES + 1) : [];
+  const experienceLevelRaw = typeof body?.experienceLevel === 'string' ? body.experienceLevel.trim().toLowerCase() : '';
+  const experienceLevel = VALID_EXPERIENCE_LEVELS.includes(experienceLevelRaw) ? experienceLevelRaw : '';
 
   if (!isValidEmail(email)) {
     return Response.json(
@@ -170,12 +208,12 @@ export async function POST(req) {
         type: 'image',
         source: { type: 'base64', media_type: img.mediaType, data: img.data },
       })),
-      { type: 'text', text: buildScanPrompt() },
+      { type: 'text', text: buildScanPrompt(experienceLevel) },
     ];
 
     const message = await client.messages.create({
       model: 'claude-sonnet-4-5-20250929',
-      max_tokens: 1800,
+      max_tokens: 2000,
       messages: [{ role: 'user', content }],
     });
 
