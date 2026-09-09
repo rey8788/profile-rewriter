@@ -28,7 +28,7 @@ const TABS = [
 const HERO_COPY = {
   scan: {
     h1: 'Is your profile actually complete?',
-    p: "Upload a screenshot (or a few) of your full Upwork profile page and we'll check it section by section — photo, rate, skills, portfolio, work history, and more. Upwork's own completeness meter should already say 100%, this is just a second pair of eyes.",
+    p: "Already on Upwork? Upload a screenshot (or a few) of your profile and we'll check it section by section — photo, rate, skills, portfolio, work history, and more. Brand new to Upwork? Upload your resume instead and we'll draft a starting title, overview, and skills list from your real experience.",
   },
   rewrite: {
     h1: 'Title & Overview Rewriter',
@@ -68,11 +68,20 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState('scan');
 
   // ---- Tab 1: profile scan ----
+  const [scanMode, setScanMode] = useState('existing'); // 'existing' | 'resume'
   const [scanImages, setScanImages] = useState([]); // [{ name, size, dataUrl }]
   const [scanLoading, setScanLoading] = useState(false);
   const [scanError, setScanError] = useState('');
   const [scanResult, setScanResult] = useState(null);
   const [scanModalOpen, setScanModalOpen] = useState(false);
+
+  // ---- Tab 1b: build from resume (first-time Upwork users) ----
+  const [resumeFile, setResumeFile] = useState(null); // { name, size, dataUrl } | null
+  const [resumeText, setResumeText] = useState('');
+  const [resumeLoading, setResumeLoading] = useState(false);
+  const [resumeError, setResumeError] = useState('');
+  const [resumeResult, setResumeResult] = useState(null);
+  const [resumeModalOpen, setResumeModalOpen] = useState(false);
 
   // ---- Tab 2: title & overview ----
   const [title, setTitle] = useState('');
@@ -137,14 +146,17 @@ export default function Home() {
     }
   }
 
-  function handleOverviewChange(e) {
-    const value = e.target.value;
+  function setOverviewAndPersist(value) {
     setOverview(value);
     try {
       window.localStorage.setItem(OVERVIEW_STORAGE_KEY, value);
     } catch (_) {
       /* localStorage unavailable — carry over silently skipped */
     }
+  }
+
+  function handleOverviewChange(e) {
+    setOverviewAndPersist(e.target.value);
   }
 
   // Shared handling for any tool's fetch response — verification / no-credits / totals
@@ -195,6 +207,7 @@ export default function Home() {
 
   function retryLastAction() {
     if (lastAction === 'scan') return handleScan();
+    if (lastAction === 'resume') return handleResumeImport();
     if (lastAction === 'rewrite') return handleRewrite();
     if (lastAction === 'match') return handleMatch();
     if (lastAction === 'proposal') return handleProposal();
@@ -281,6 +294,77 @@ export default function Home() {
       setScanError(err.message || 'Something went wrong. Please try again.');
     } finally {
       setScanLoading(false);
+    }
+  }
+
+  // ---- Tab 1b: build from resume ----
+  async function handleResumeFileSelected(e) {
+    const file = (e.target.files || [])[0];
+    e.target.value = '';
+    if (!file) return;
+    setResumeError('');
+    if (file.type !== 'application/pdf') {
+      setResumeError('Upload your resume as a PDF, or paste the text instead.');
+      return;
+    }
+    if (file.size > MAX_IMAGE_BYTES) {
+      setResumeError('That PDF is over 5MB — try a smaller file, or paste the text instead.');
+      return;
+    }
+    try {
+      const dataUrl = await fileToDataUrl(file);
+      setResumeFile({ name: file.name, size: file.size, dataUrl });
+    } catch (_) {
+      setResumeError('Could not read that file. Try again, or paste the text instead.');
+    }
+  }
+
+  function removeResumeFile() {
+    setResumeFile(null);
+  }
+
+  function handleResumeTextChange(e) {
+    setResumeText(e.target.value);
+  }
+
+  async function handleResumeImport(e) {
+    if (e && e.preventDefault) e.preventDefault();
+    if (!emailValid || (!resumeFile && !resumeText.trim()) || resumeLoading) return;
+    setLastAction('resume');
+    setResumeLoading(true);
+    setResumeError('');
+    setNoCredits(false);
+    try {
+      const res = await fetch('/api/resume-import', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          resumeFile: resumeFile?.dataUrl || '',
+          resumeText: resumeFile ? '' : resumeText.trim(),
+          email: email.trim(),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        const handled = handleApiFailure(data);
+        if (!handled) throw new Error(data?.message || 'Something went wrong. Please try again.');
+        return;
+      }
+      handleApiSuccess(data);
+      setResumeResult(data);
+      setResumeModalOpen(true);
+      if (data.suggestedTitle) setTitle(data.suggestedTitle);
+      if (data.suggestedOverview) {
+        setOverviewAndPersist(data.suggestedOverview);
+        setServices(data.suggestedOverview);
+      }
+      if (Array.isArray(data.suggestedSkills) && data.suggestedSkills.length > 0) {
+        setSkills(data.suggestedSkills.join('\n'));
+      }
+    } catch (err) {
+      setResumeError(err.message || 'Something went wrong. Please try again.');
+    } finally {
+      setResumeLoading(false);
     }
   }
 
@@ -422,7 +506,7 @@ export default function Home() {
           <StepNav
             activeTab={activeTab}
             setActiveTab={setActiveTab}
-            done={{ scan: Boolean(scanResult), rewrite: Boolean(rewriteResult), match: Boolean(matchResult) }}
+            done={{ scan: Boolean(scanResult) || Boolean(resumeResult), rewrite: Boolean(rewriteResult), match: Boolean(matchResult) }}
           />
           <h1>{hero.h1}</h1>
           <p>{hero.p}</p>
@@ -512,6 +596,8 @@ export default function Home() {
 
         {activeTab === 'scan' && (
           <ScanTab
+            scanMode={scanMode}
+            onScanModeChange={setScanMode}
             emailValid={emailValid}
             scanImages={scanImages}
             onFilesSelected={handleFilesSelected}
@@ -521,6 +607,16 @@ export default function Home() {
             error={scanError}
             hasResult={Boolean(scanResult)}
             onViewResults={() => setScanModalOpen(true)}
+            resumeFile={resumeFile}
+            onResumeFileSelected={handleResumeFileSelected}
+            onRemoveResumeFile={removeResumeFile}
+            resumeText={resumeText}
+            onResumeTextChange={handleResumeTextChange}
+            onResumeSubmit={handleResumeImport}
+            resumeLoading={resumeLoading}
+            resumeError={resumeError}
+            hasResumeResult={Boolean(resumeResult)}
+            onViewResumeResults={() => setResumeModalOpen(true)}
             onSkip={() => setActiveTab('rewrite')}
           />
         )}
@@ -605,6 +701,78 @@ export default function Home() {
               </ul>
             </div>
           )}
+        </Modal>
+      )}
+
+      {resumeModalOpen && resumeResult && (
+        <Modal
+          title="Your starting profile is ready"
+          subtitle={resumeResult.summary}
+          onClose={() => setResumeModalOpen(false)}
+          footer={
+            <button type="button" className="btn" style={{ marginTop: 0 }} onClick={() => { setResumeModalOpen(false); setActiveTab('rewrite'); }}>
+              Next: Review my title &amp; overview →
+            </button>
+          }
+        >
+          {resumeResult.suggestedTitle && (
+            <div className="rewrite-block" style={{ marginTop: 0 }}>
+              <h3>
+                Suggested title <span className="tag">Draft</span>
+              </h3>
+              <div className="rewrite-copy">{resumeResult.suggestedTitle}</div>
+            </div>
+          )}
+
+          {resumeResult.suggestedOverview && (
+            <div className="rewrite-block">
+              <h3>
+                Suggested overview <span className="tag">Draft</span>
+              </h3>
+              <div className="rewrite-copy">{resumeResult.suggestedOverview}</div>
+            </div>
+          )}
+
+          {Array.isArray(resumeResult.suggestedSkills) && resumeResult.suggestedSkills.length > 0 && (
+            <div className="rewrite-block">
+              <h3>Suggested skills</h3>
+              <ul className="skill-list">
+                {resumeResult.suggestedSkills.map((skill, i) => (
+                  <li key={i}>{skill}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {resumeResult.rateSuggestion && resumeResult.rateSuggestion.suggestedRange && (
+            <div className="rate-suggestion">
+              <div className="rate-suggestion-label">Suggested starting rate</div>
+              <div className="rate-suggestion-value">{resumeResult.rateSuggestion.suggestedRange}</div>
+              <div className="rate-suggestion-meta">
+                {resumeResult.rateSuggestion.category}
+                {resumeResult.rateSuggestion.experienceLevel ? ` · ${resumeResult.rateSuggestion.experienceLevel}` : ''}
+              </div>
+              {resumeResult.rateSuggestion.note && (
+                <div className="rate-suggestion-note">{resumeResult.rateSuggestion.note}</div>
+              )}
+            </div>
+          )}
+
+          {Array.isArray(resumeResult.gapsFlagged) && resumeResult.gapsFlagged.length > 0 && (
+            <div className="gaps">
+              <h3>Worth adding before you publish</h3>
+              <ul>
+                {resumeResult.gapsFlagged.map((gap, i) => (
+                  <li key={i}>{gap}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          <p className="sub" style={{ marginTop: '1.4rem' }}>
+            Your title, overview, and skills have already been filled into the next two tabs so you can review and
+            edit them there. Nothing goes live until you copy it into Upwork yourself.
+          </p>
         </Modal>
       )}
 
@@ -873,6 +1041,8 @@ function Modal({ title, subtitle, onClose, children, footer }) {
 }
 
 function ScanTab({
+  scanMode,
+  onScanModeChange,
   emailValid,
   scanImages,
   onFilesSelected,
@@ -882,64 +1052,178 @@ function ScanTab({
   error,
   hasResult,
   onViewResults,
+  resumeFile,
+  onResumeFileSelected,
+  onRemoveResumeFile,
+  resumeText,
+  onResumeTextChange,
+  onResumeSubmit,
+  resumeLoading,
+  resumeError,
+  hasResumeResult,
+  onViewResumeResults,
   onSkip,
 }) {
   const canSubmit = emailValid && scanImages.length > 0 && !loading;
+  const canSubmitResume = emailValid && (Boolean(resumeFile) || resumeText.trim().length > 0) && !resumeLoading;
+
   return (
-    <form className="card" onSubmit={onSubmit}>
-      <h2>Upload your profile screenshot</h2>
-      <p className="sub">
-        A full-page screenshot works best. If your profile is long, split it into 2–3 screenshots and upload them
-        together — nothing gets invented for parts we can&apos;t see. Include your work history and completed jobs
-        if you can — that&apos;s what unlocks a suggested rate range based on your actual experience.
-      </p>
+    <div className="card">
+      <h2>{scanMode === 'resume' ? 'Build a starting profile' : 'Upload your profile screenshot'}</h2>
 
-      <label htmlFor="scan-upload" className="dropzone">
-        <span className="dropzone-title">Choose screenshot{scanImages.length ? 's' : ''}</span>
-        <span className="dropzone-hint">PNG, JPG, WEBP, or GIF — up to {MAX_IMAGES}, 5MB each</span>
-        <input
-          id="scan-upload"
-          type="file"
-          accept="image/png,image/jpeg,image/webp,image/gif"
-          multiple
-          onChange={onFilesSelected}
-          style={{ display: 'none' }}
-        />
-      </label>
-
-      {scanImages.length > 0 && (
-        <ul className="file-list">
-          {scanImages.map((img, i) => (
-            <li key={i}>
-              <span className="file-name">{img.name}</span>
-              <span className="file-size">{(img.size / 1024 / 1024).toFixed(1)}MB</span>
-              <button type="button" className="file-remove" onClick={() => onRemoveImage(i)} aria-label={`Remove ${img.name}`}>
-                ×
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
-
-      <button className="btn" type="submit" disabled={!canSubmit}>
-        {loading ? 'Scanning your profile…' : 'Scan my profile'}
-      </button>
-
-      <div className={`status-line ${error ? 'err' : ''}`}>
-        {error ? error : loading ? 'This usually takes 10–20 seconds.' : !emailValid ? 'Add your email above first.' : ' '}
-      </div>
-
-      <div style={{ marginTop: '0.6rem', display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-        {hasResult && (
-          <button type="button" onClick={onViewResults} className="link-btn">
-            View last results
-          </button>
-        )}
-        <button type="button" onClick={onSkip} className="link-btn muted">
-          Skip this — go straight to Title &amp; Overview →
+      <div style={{ display: 'flex', gap: '0.6rem', marginTop: '0.9rem', marginBottom: '0.2rem' }}>
+        <button
+          type="button"
+          onClick={() => onScanModeChange('existing')}
+          className="btn"
+          style={{
+            marginTop: 0,
+            background: scanMode === 'existing' ? 'var(--accent)' : 'var(--paper)',
+            color: scanMode === 'existing' ? 'var(--accent-ink)' : 'var(--ink)',
+            border: scanMode === 'existing' ? 'none' : '1px solid var(--line)',
+          }}
+        >
+          I have an Upwork profile
+        </button>
+        <button
+          type="button"
+          onClick={() => onScanModeChange('resume')}
+          className="btn"
+          style={{
+            marginTop: 0,
+            background: scanMode === 'resume' ? 'var(--accent)' : 'var(--paper)',
+            color: scanMode === 'resume' ? 'var(--accent-ink)' : 'var(--ink)',
+            border: scanMode === 'resume' ? 'none' : '1px solid var(--line)',
+          }}
+        >
+          I&apos;m new, build from my resume
         </button>
       </div>
-    </form>
+
+      {scanMode === 'existing' ? (
+        <form onSubmit={onSubmit}>
+          <p className="sub" style={{ marginTop: '0.9rem' }}>
+            A full-page screenshot works best. If your profile is long, split it into 2–3 screenshots and upload them
+            together — nothing gets invented for parts we can&apos;t see. Include your work history and completed
+            jobs if you can — that&apos;s what unlocks a suggested rate range based on your actual experience.
+          </p>
+
+          <label htmlFor="scan-upload" className="dropzone">
+            <span className="dropzone-title">Choose screenshot{scanImages.length ? 's' : ''}</span>
+            <span className="dropzone-hint">PNG, JPG, WEBP, or GIF — up to {MAX_IMAGES}, 5MB each</span>
+            <input
+              id="scan-upload"
+              type="file"
+              accept="image/png,image/jpeg,image/webp,image/gif"
+              multiple
+              onChange={onFilesSelected}
+              style={{ display: 'none' }}
+            />
+          </label>
+
+          {scanImages.length > 0 && (
+            <ul className="file-list">
+              {scanImages.map((img, i) => (
+                <li key={i}>
+                  <span className="file-name">{img.name}</span>
+                  <span className="file-size">{(img.size / 1024 / 1024).toFixed(1)}MB</span>
+                  <button type="button" className="file-remove" onClick={() => onRemoveImage(i)} aria-label={`Remove ${img.name}`}>
+                    ×
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          <button className="btn" type="submit" disabled={!canSubmit}>
+            {loading ? 'Scanning your profile…' : 'Scan my profile'}
+          </button>
+
+          <div className={`status-line ${error ? 'err' : ''}`}>
+            {error ? error : loading ? 'This usually takes 10–20 seconds.' : !emailValid ? 'Add your email above first.' : ' '}
+          </div>
+
+          <div style={{ marginTop: '0.6rem', display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+            {hasResult && (
+              <button type="button" onClick={onViewResults} className="link-btn">
+                View last results
+              </button>
+            )}
+            <button type="button" onClick={onSkip} className="link-btn muted">
+              Skip this — go straight to Title &amp; Overview →
+            </button>
+          </div>
+        </form>
+      ) : (
+        <form onSubmit={onResumeSubmit}>
+          <p className="sub" style={{ marginTop: '0.9rem' }}>
+            No Upwork profile yet? Upload your resume and we&apos;ll draft a starting title, overview, and skills
+            list from your real experience, no client history or ratings get invented, since you don&apos;t have
+            any yet. You&apos;ll review and edit everything before it goes live.
+          </p>
+
+          <label htmlFor="resume-upload" className="dropzone">
+            <span className="dropzone-title">{resumeFile ? 'Choose a different file' : 'Choose your resume'}</span>
+            <span className="dropzone-hint">PDF, up to 5MB</span>
+            <input
+              id="resume-upload"
+              type="file"
+              accept="application/pdf"
+              onChange={onResumeFileSelected}
+              style={{ display: 'none' }}
+            />
+          </label>
+
+          {resumeFile && (
+            <ul className="file-list">
+              <li>
+                <span className="file-name">{resumeFile.name}</span>
+                <span className="file-size">{(resumeFile.size / 1024 / 1024).toFixed(1)}MB</span>
+                <button type="button" className="file-remove" onClick={onRemoveResumeFile} aria-label={`Remove ${resumeFile.name}`}>
+                  ×
+                </button>
+              </li>
+            </ul>
+          )}
+
+          <label htmlFor="resume-text" style={{ marginTop: '1.1rem' }}>
+            Or paste your resume text instead <span className="hint">(if you don&apos;t have a PDF handy)</span>
+          </label>
+          <textarea
+            id="resume-text"
+            value={resumeText}
+            onChange={onResumeTextChange}
+            placeholder="Paste your resume text here..."
+            disabled={Boolean(resumeFile)}
+          />
+
+          <button className="btn" type="submit" disabled={!canSubmitResume}>
+            {resumeLoading ? 'Building your starting profile…' : 'Build my starting profile'}
+          </button>
+
+          <div className={`status-line ${resumeError ? 'err' : ''}`}>
+            {resumeError
+              ? resumeError
+              : resumeLoading
+              ? 'This usually takes 10–20 seconds.'
+              : !emailValid
+              ? 'Add your email above first.'
+              : ' '}
+          </div>
+
+          <div style={{ marginTop: '0.6rem', display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+            {hasResumeResult && (
+              <button type="button" onClick={onViewResumeResults} className="link-btn">
+                View last results
+              </button>
+            )}
+            <button type="button" onClick={onSkip} className="link-btn muted">
+              Skip this — go straight to Title &amp; Overview →
+            </button>
+          </div>
+        </form>
+      )}
+    </div>
   );
 }
 
