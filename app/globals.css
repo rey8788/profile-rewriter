@@ -721,4 +721,31 @@ footer {
   line-height: 1.5;
   max-width: 640px;
 }
-.d
+.disclaimer-strip .link-btn {
+  white-space: nowrap;
+  font-size: 0.78rem;
+}
+
+.privacy-notice h3 {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--weak-ink);
+  margin: 1.1rem 0 0.3rem;
+}
+.privacy-notice h3:first-child {
+  margin-top: 0;
+}
+.privacy-notice p {
+  margin: 0.3rem 0 0;
+  color: var(--ink-muted);
+  font-size: 0.9rem;
+  line-height: 1.55;
+}
+.privacy-notice a {
+  color: var(--accent);
+  font-weight: 600;
+  text-decoration: none;
+}
+.privacy-notice a:hover {
+  text-decoration: underline;
+}
