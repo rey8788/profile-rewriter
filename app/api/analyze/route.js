@@ -19,7 +19,9 @@ ${title || '(not provided)'}
 MY CURRENT OVERVIEW:
 ${overview || '(not provided)'}
 
-Evaluate each part above as "pass" or "weak" with a short one-sentence note explaining why. Then write a rewritten title (only if the title is weak) and a rewritten full overview using ONLY the facts, services, tools, and experience already present in what I gave you above — rearranged and clarified, never invented.
+Evaluate each of the five overview parts above (including CTA) as "pass" or "weak" with a short one-sentence note explaining why. Then write a rewritten title (only if the title is weak) and a rewritten full overview using ONLY the facts, services, tools, and experience already present in what I gave you above — rearranged and clarified, never invented.
+
+The rewritten overview must contain all five parts as five distinct paragraphs, in this exact order, each separated by a blank line: HOOK, WHAT I DO, HOW I HELP, PROOF, CTA. Do not merge two parts into one paragraph and do not skip a part even if the current overview never separated them out. HOW I HELP in particular is easy to accidentally fold into WHAT I DO. They are different: WHAT I DO lists the actual service or task, HOW I HELP states the client-facing benefit that results from it (time saved, problems avoided, outcomes reached). If the input doesn't give you enough real material to honestly write one of the five parts on its own, do not quietly drop it or blend it into a neighboring paragraph. Instead write a short bracketed placeholder in that paragraph's spot (for example [add a sentence on how this saves the client time or catches problems early]) and add a matching entry to gapsFlagged.
 
 Write the overview the way a real person would actually say it to a client, not like marketing copy: short sentences, plain words, no filler, no buzzwords, nothing repeated twice. Each of the five parts should usually be just one to three sentences. Aim for roughly 120-180 words total for the whole overview — only go longer if the person's own input genuinely has enough real specifics that it needs the extra room. Cut anything that isn't doing real work.
 
@@ -34,10 +36,11 @@ Reply with ONLY a JSON object, no other text, in exactly this shape:
     "hook": {"status": "pass or weak", "note": "one sentence"},
     "whatIDo": {"status": "pass or weak", "note": "one sentence"},
     "howIHelp": {"status": "pass or weak", "note": "one sentence"},
-    "proof": {"status": "pass or weak", "note": "one sentence"}
+    "proof": {"status": "pass or weak", "note": "one sentence"},
+    "cta": {"status": "pass or weak", "note": "one sentence"}
   },
   "first250": {"status": "pass or weak", "note": "one sentence"},
-  "rewrittenOverview": "the full rewritten overview as one string with blank lines between parts",
+  "rewrittenOverview": "the full rewritten overview as one string, with all five parts present as five distinct paragraphs separated by blank lines, in order: Hook, What I Do, How I Help, Proof, CTA",
   "gapsFlagged": ["short phrases describing any real information the user needs to add themselves"]
 }`;
 }
