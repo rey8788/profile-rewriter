@@ -703,3 +703,22 @@ footer {
 .cta-strip a:hover {
   text-decoration: underline;
 }
+
+.disclaimer-strip {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--line);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.4rem 1rem;
+}
+.disclaimer-strip p {
+  margin: 0;
+  color: var(--ink-muted);
+  font-size: 0.78rem;
+  line-height: 1.5;
+  max-width: 640px;
+}
+.d
