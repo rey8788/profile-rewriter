@@ -160,7 +160,7 @@ async function sendEmail({ to, subject, text, html }) {
     },
     body: JSON.stringify({
       personalizations: [{ to: [{ email: to }] }],
-      from: { email: fromEmail, name: 'Profile Rewriter' },
+      from: { email: fromEmail, name: 'Upwork Freelancer Toolkit' },
       subject,
       content: [
         { type: 'text/plain', value: text },
@@ -220,7 +220,7 @@ export async function sendVerificationCode(email) {
   try {
     await sendEmail({
       to: normalized,
-      subject: 'Your Profile Rewriter verification code',
+      subject: 'Your Upwork Freelancer Toolkit verification code',
       text: `Your verification code is ${code}. It expires in 10 minutes. If you didn't request this, you can ignore this email.`,
       html: `<p>Your verification code is:</p><p style="font-size:28px;font-weight:700;letter-spacing:4px;">${code}</p><p>It expires in 10 minutes. If you didn't request this, you can ignore this email.</p>`,
     });
@@ -296,9 +296,9 @@ export async function sendAccessGrantedEmail(email) {
   try {
     await sendEmail({
       to: normalized,
-      subject: 'Your Profile Rewriter access is now unlimited',
-      text: `Good news — your Profile Rewriter access is now unlimited. No more free-credit limit on any tool.\n\nRun a check any time: https://profile-rewriter.vercel.app`,
-      html: `<p>Good news — your Profile Rewriter access is now <strong>unlimited</strong>. No more free-credit limit on any tool.</p><p>Run a check any time: <a href="https://profile-rewriter.vercel.app">https://profile-rewriter.vercel.app</a></p>`,
+      subject: 'Your Upwork Freelancer Toolkit access is now unlimited',
+      text: `Good news — your Upwork Freelancer Toolkit access is now unlimited. No more free-credit limit on any tool.\n\nRun a check any time: https://profile-rewriter.vercel.app`,
+      html: `<p>Good news — your Upwork Freelancer Toolkit access is now <strong>unlimited</strong>. No more free-credit limit on any tool.</p><p>Run a check any time: <a href="https://profile-rewriter.vercel.app">https://profile-rewriter.vercel.app</a></p>`,
     });
     return { sent: true };
   } catch (err) {
