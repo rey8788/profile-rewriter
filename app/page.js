@@ -105,6 +105,9 @@ export default function Home() {
   const [proposalResult, setProposalResult] = useState(null);
   const [proposalCopied, setProposalCopied] = useState(false);
 
+  // ---- footer: privacy notice popup ----
+  const [privacyModalOpen, setPrivacyModalOpen] = useState(false);
+
   const emailValid = EMAIL_RE.test(email.trim());
 
   // Pick up an overview and email already saved from a previous visit.
@@ -991,7 +994,62 @@ export default function Home() {
             More guides at my Stan Store →
           </a>
         </div>
+        <div className="disclaimer-strip">
+          <p>
+            Profile Rewriter is a tool to help you build a stronger profile and apply to jobs more
+            smartly and strategically. It doesn&apos;t guarantee interviews, clients, or income, and
+            it can get things wrong, so treat every suggestion as a starting draft to review and
+            personalize in your own words, not something to publish as-is.
+          </p>
+          <button type="button" className="link-btn muted" onClick={() => setPrivacyModalOpen(true)}>
+            Privacy notice
+          </button>
+        </div>
       </footer>
+
+      {privacyModalOpen && (
+        <Modal title="Privacy notice" onClose={() => setPrivacyModalOpen(false)}>
+          <div className="privacy-notice">
+            <p>
+              This tool asks you to upload things that can contain personal information, your
+              resume, screenshots of your Upwork profile, your email address, so here&apos;s a plain
+              explanation of what happens with that.
+            </p>
+
+            <h3>What gets collected</h3>
+            <p>
+              Your email address, and whatever you submit to the specific tool you&apos;re using:
+              profile screenshots, your resume file or pasted resume text, skills, or a job post
+              you paste in.
+            </p>
+
+            <h3>What it's used for</h3>
+            <p>
+              Whatever you upload is sent directly to Anthropic&apos;s Claude AI to generate the
+              suggestions you asked for (a profile scan, a rewritten title and overview, a job match,
+              or a proposal draft). It&apos;s used for that one request and nothing else, no
+              marketing, no selling data, no sharing with other companies.
+            </p>
+
+            <h3>What's actually stored</h3>
+            <p>
+              Only your email address and how many free credits you&apos;ve used are stored, so the
+              free-credit system works. Your resume, screenshots, skills, and job post text are not
+              saved on our end after your request is processed. Anthropic&apos;s own data-handling
+              terms apply to what passes through their API to generate your results.
+            </p>
+
+            <h3>Questions or removal requests</h3>
+            <p>
+              If you want your email removed or have a question about this, reach out through{' '}
+              <a href="https://stan.store/reymags" target="_blank" rel="noopener noreferrer">
+                my Stan Store
+              </a>
+              .
+            </p>
+          </div>
+        </Modal>
+      )}
     </>
   );
 }
