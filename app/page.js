@@ -588,7 +588,7 @@ export default function Home() {
               <h3>You&apos;re out of free credits</h3>
               <p>
                 You&apos;ve used all {creditsTotal ?? 'your'} free credits, shared across every tab. Subscribe to
-                Profile Rewriter Unlimited to keep going as often as you want.
+                Upwork Freelancer Toolkit Unlimited to keep going as often as you want.
               </p>
               <a href={SUBSCRIBE_URL} target="_blank" rel="noopener noreferrer" className="btn" style={{ display: 'block', textDecoration: 'none', textAlign: 'center' }}>
                 Subscribe for unlimited access &rarr;
@@ -996,10 +996,10 @@ export default function Home() {
         </div>
         <div className="disclaimer-strip">
           <p>
-            Profile Rewriter is a tool to help you build a stronger profile and apply to jobs more
-            smartly and strategically. It doesn&apos;t guarantee interviews, clients, or income, and
-            it can get things wrong, so treat every suggestion as a starting draft to review and
-            personalize in your own words, not something to publish as-is.
+            This tool is powered by AI to help you build a stronger profile and apply to jobs more
+            smartly and strategically. Like any AI, it can occasionally get something wrong, so
+            treat every suggestion as a starting draft to review and personalize in your own words,
+            not something to publish as-is. It doesn&apos;t guarantee interviews, clients, or income.
           </p>
           <button type="button" className="link-btn muted" onClick={() => setPrivacyModalOpen(true)}>
             Privacy notice
