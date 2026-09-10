@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 
 const SAMPLE_TITLE = 'Customer Support & Ops Specialist | Zendesk Setup | E-Commerce';
 const SAMPLE_OVERVIEW =
-  "I help e-commerce and SaaS teams stop drowning in support tickets. I set up Zendesk from scratch (forms, fields, triggers, macros, SLAs) and clean up messy help centers so customers actually find answers instead of emailing you. Over 8+ years I've managed support for stores doing six figures a month, cut first-response time in half, and trained teams of up to 6 agents. If your inbox is a mess or your Zendesk was never set up properly, send me a message and I'll tell you exactly what I'd fix first.";
+  "Support tickets piling up, and not sure your Zendesk is even set up right?\n\nI set up Zendesk from scratch (forms, fields, triggers, macros, SLAs) and clean up messy help centers so customers actually find answers instead of emailing you.\n\nThat means fewer repetitive tickets landing in your queue, faster replies without needing to hire more agents, and a setup your own team can actually keep running after I'm done.\n\nOver 8+ years I've managed support for stores doing six figures a month, cut first-response time in half, and trained teams of up to 6 agents.\n\nIf your inbox is a mess or your Zendesk was never set up properly, send me a message and I'll tell you exactly what I'd fix first.";
 const SAMPLE_SKILLS = 'Zendesk\nCustomer Support\nEmail Support\nHelp Desk\nCustomer Service\nData Entry';
 const SAMPLE_SERVICES =
   "I set up and manage Zendesk for e-commerce and SaaS companies — forms, fields, triggers, macros, SLAs, help center articles. I also run day-to-day support operations: ticket queues, team training, and reporting.";
@@ -796,6 +796,7 @@ export default function Home() {
             <ScoreRow label="What I do" check={rewriteResult.overviewCheck?.whatIDo} />
             <ScoreRow label="How I help" check={rewriteResult.overviewCheck?.howIHelp} />
             <ScoreRow label="Proof" check={rewriteResult.overviewCheck?.proof} />
+            <ScoreRow label="Call to action" check={rewriteResult.overviewCheck?.cta} />
             <ScoreRow label="First 250 characters" check={rewriteResult.first250} />
           </div>
 
