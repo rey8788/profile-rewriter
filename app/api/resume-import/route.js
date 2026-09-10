@@ -32,12 +32,13 @@ SUGGESTED TITLE
 Write a real Upwork-style headline, similar in shape to "Customer Support & Ops Specialist | Zendesk Setup | E-Commerce": a role plus a specialty plus a key tool or focus area, all grounded in what the resume actually shows. Keep it to 70 characters or fewer. If there isn't enough in the resume to support a specific, honest title, set suggestedTitle to null.
 
 SUGGESTED OVERVIEW
-Write it in first person, following this structure, same as the Profile Builder framework used elsewhere in this app:
-1. Hook: what kind of work they want to do and the value they bring, grounded in their real background.
+Write it in first person, following the same 5-part Profile Builder framework used elsewhere in this app, as five distinct paragraphs separated by blank lines, in this order:
+1. Hook: what kind of work they want to do and the value they bring, grounded in their real background. Not a personal introduction, open with the kind of problem or need they'd be solving for a client.
 2. What I do: a plain description of their actual capabilities, based on their real job history.
-3. How I help: how they'd approach client work, translated from their real day-to-day responsibilities.
+3. How I help: the client-facing benefit that results from what they do (time saved, problems avoided, outcomes reached), translated from their real day-to-day responsibilities. Do not merge this into "What I do", it's a different sentence about value, not another list of tasks.
 4. Proof: their strongest verifiable achievement from the resume, a real number, outcome, or scope of responsibility. It is fine and expected for this to come from a traditional job, not freelance work.
-Never state or imply they have done freelance work, served any Upwork clients, or have ratings or reviews, since they don't yet. If the resume doesn't give enough to responsibly write this, set suggestedOverview to null.
+5. CTA: a simple, honest next step for a potential client, like inviting a message to discuss the work. Never phrase it as an invitation based on past freelance clients or reviews, since they don't have any yet.
+Never state or imply they have done freelance work, served any Upwork clients, or have ratings or reviews, since they don't yet. If the resume doesn't give enough to responsibly write any one of these five parts, leave a short bracketed placeholder in that paragraph's spot instead of dropping or merging it, and note the gap in gapsFlagged. If the resume is too thin to responsibly write the overview at all, set suggestedOverview to null.
 
 SUGGESTED SKILLS
 List only tools, software, and named competencies that actually appear in the resume, not things you're inferring purely from a job title. Order them with whatever's most relevant to their likely freelance category first. Up to 20. Use an empty array if nothing concrete can be pulled out.
