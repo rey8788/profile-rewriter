@@ -30,7 +30,7 @@ Check for these sections, in this order:
 1. Profile photo — a real photo, not a placeholder or default avatar icon
 2. Title — the headline under the name
 3. Overview / summary text — the "About" or summary block
-4. Hourly rate — a rate is shown and set. Look only at the single rate figure positioned directly beside or right under the title/headline near the top of the profile, the one main rate field for the whole profile. Do not use a rate from anywhere else on the page: not a consultation or service listing, not a portfolio item, not a specific past job's rate, and not any other dollar figure elsewhere on the screenshot. When you write the note for this item, transcribe that one figure exactly as shown, character for character. If you cannot clearly tell which figure is that one main profile rate, do not state a specific dollar amount in the note at all, just say a rate appears to be set without naming a number.
+4. Hourly rate — just check whether a rate field near the top of the profile, beside the title, is filled in with some number, or empty/showing a placeholder to set one. Do not state the actual dollar figure anywhere in this item's note, under any circumstances, even if you're confident you can read it. Reading a specific number off a screenshot for this item has repeatedly produced wrong figures, so this item is a plain filled-in-or-not check only. The note should say something generic like "A rate is set" or "No rate is set yet", nothing more specific than that, no dollar sign, no digits.
 5. Skills — a list of skill tags
 6. Portfolio / work samples / project catalog
 7. Work history — completed jobs, reviews, or ratings shown
@@ -42,7 +42,7 @@ Check for these sections, in this order:
 
 For each, decide "pass" (clearly present and filled in), "flag" (visibly present as a section but empty, incomplete, or showing a placeholder/prompt to add info), or "not_visible" (this part of the page isn't shown in the screenshot(s) provided, so it can't be checked here).
 
-Then write a short plain-English summary (1-2 sentences, like you're telling a friend) and a flaggedItems list naming only the genuine "flag" items in plain language. Leave flaggedItems empty if everything checkable looks complete.
+Then write a short plain-English summary (1-2 sentences, like you're telling a friend) and a flaggedItems list naming only the genuine "flag" items in plain language. Leave flaggedItems empty if everything checkable looks complete. Do not state a specific dollar figure anywhere in this summary or in flaggedItems either, for the same reason noted under Hourly rate below.
 
 EXTRACT TITLE & OVERVIEW
 Separate from everything above: if the title (the headline under the name) is visible in the screenshot(s), transcribe it exactly as written, character for character. Do not fix typos, reword it, improve it, or shorten it, this is a plain copy so the person doesn't have to retype it themselves elsewhere in this app. If the title isn't visible in any screenshot, set extractedTitle to null.
