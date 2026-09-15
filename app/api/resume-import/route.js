@@ -8,7 +8,7 @@ const MAX_RESUME_TEXT_CHARS = 12_000;
 // since each API route in this app is self-contained. Update both if these change.
 const RATE_REFERENCE = `Reference hourly-rate ranges by category and experience level (broad market anchors, not exact figures — a specific profile can reasonably land outside these, especially for a niche specialty):
 - Data entry / admin support: Entry $6-12, Intermediate $12-18, Expert $18-25
-- Customer service / virtual assistant: Entry $8-15, Intermediate $15-25, Expert $25-40+
+- Customer service / virtual assistant: Entry $5-10, Intermediate $10-18, Expert $15-25
 - Social media management: Entry $12-20, Intermediate $20-35, Expert $35-60+
 - Bookkeeping / accounting support: Entry $15-20, Intermediate $20-35, Expert $35-60+
 - Content writing / copywriting: Entry $15-25, Intermediate $25-45, Expert $45-80+
