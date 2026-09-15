@@ -44,6 +44,11 @@ For each, decide "pass" (clearly present and filled in), "flag" (visibly present
 
 Then write a short plain-English summary (1-2 sentences, like you're telling a friend) and a flaggedItems list naming only the genuine "flag" items in plain language. Leave flaggedItems empty if everything checkable looks complete.
 
+EXTRACT TITLE & OVERVIEW
+Separate from everything above: if the title (the headline under the name) is visible in the screenshot(s), transcribe it exactly as written, character for character. Do not fix typos, reword it, improve it, or shorten it, this is a plain copy so the person doesn't have to retype it themselves elsewhere in this app. If the title isn't visible in any screenshot, set extractedTitle to null.
+
+Do the same for the overview / "About" summary text: if it's visible, transcribe it exactly as written, preserving the original wording and paragraph breaks as best you can tell from the screenshot. Do not rewrite, summarize, or correct it. If only part of the overview is visible (cut off by the screenshot's crop), transcribe just the visible part rather than guessing the rest, and if none of it is visible, set extractedOverview to null.
+
 RATE SUGGESTION
 Separate from the completeness check above: figure out, using only what's actually visible in the screenshot(s), both (a) which ONE category from the reference list below this profile fits, and (b) roughly what experience level (entry, intermediate, or expert) the freelancer's real work history supports. Do not force either one. If either can't be honestly determined from what's shown, leave rateSuggestion entirely null rather than guessing.
 
@@ -77,6 +82,8 @@ Reply with ONLY a JSON object, no other text, in exactly this shape:
     {"item": "Availability / badges", "status": "...", "note": "..."}
   ],
   "flaggedItems": ["short phrases naming genuinely incomplete sections"],
+  "extractedTitle": "the title transcribed exactly as shown, or null if it isn't visible",
+  "extractedOverview": "the overview/About text transcribed exactly as shown, or null if it isn't visible",
   "rateSuggestion": {
     "category": "the matched category name, or null if none was identifiable",
     "experienceLevel": "entry, intermediate, or expert, based on the real work-history evidence you found, or null if it couldn't be honestly estimated",
