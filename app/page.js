@@ -505,7 +505,7 @@ export default function Home() {
     <>
       <section className="hero">
         <div className="hero-inner">
-          <p className="eyebrow">Upwork Freelancer Toolkit</p>
+          <p className="eyebrow">Freelance Profile Toolkit</p>
           <StepNav
             activeTab={activeTab}
             setActiveTab={setActiveTab}
@@ -588,7 +588,7 @@ export default function Home() {
               <h3>You&apos;re out of free credits</h3>
               <p>
                 You&apos;ve used all {creditsTotal ?? 'your'} free credits, shared across every tab. Subscribe to
-                Upwork Freelancer Toolkit Unlimited to keep going as often as you want.
+                Freelance Profile Toolkit Unlimited to keep going as often as you want.
               </p>
               <a href={SUBSCRIBE_URL} target="_blank" rel="noopener noreferrer" className="btn" style={{ display: 'block', textDecoration: 'none', textAlign: 'center' }}>
                 Subscribe for unlimited access &rarr;
