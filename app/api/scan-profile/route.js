@@ -30,7 +30,7 @@ Check for these sections, in this order:
 1. Profile photo — a real photo, not a placeholder or default avatar icon
 2. Title — the headline under the name
 3. Overview / summary text — the "About" or summary block
-4. Hourly rate — a rate is shown and set
+4. Hourly rate — a rate is shown and set. Look only at the single rate figure positioned directly beside or right under the title/headline near the top of the profile, the one main rate field for the whole profile. Do not use a rate from anywhere else on the page: not a consultation or service listing, not a portfolio item, not a specific past job's rate, and not any other dollar figure elsewhere on the screenshot. When you write the note for this item, transcribe that one figure exactly as shown, character for character. If you cannot clearly tell which figure is that one main profile rate, do not state a specific dollar amount in the note at all, just say a rate appears to be set without naming a number.
 5. Skills — a list of skill tags
 6. Portfolio / work samples / project catalog
 7. Work history — completed jobs, reviews, or ratings shown
