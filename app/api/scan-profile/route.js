@@ -49,6 +49,8 @@ Separate from everything above: if the title (the headline under the name) is vi
 
 Do the same for the overview / "About" summary text: if it's visible, transcribe it exactly as written, preserving the original wording and paragraph breaks as best you can tell from the screenshot. Do not rewrite, summarize, or correct it. If only part of the overview is visible (cut off by the screenshot's crop), transcribe just the visible part rather than guessing the rest, and if none of it is visible, set extractedOverview to null.
 
+Do the same for the skills list: if the skill tags on the profile are visible, transcribe them as a list, one per entry, exactly as each one is written, in the same order they appear. Do not add, remove, merge, reword, or reorder any of them, and do not infer additional skills from the overview or work history, only copy what's literally shown as a skill tag. If the skills section isn't visible in any screenshot, use an empty array.
+
 RATE SUGGESTION
 Separate from the completeness check above: figure out, using only what's actually visible in the screenshot(s), both (a) which ONE category from the reference list below this profile fits, and (b) roughly what experience level (entry, intermediate, or expert) the freelancer's real work history supports. Do not force either one. If either can't be honestly determined from what's shown, leave rateSuggestion entirely null rather than guessing.
 
@@ -84,6 +86,7 @@ Reply with ONLY a JSON object, no other text, in exactly this shape:
   "flaggedItems": ["short phrases naming genuinely incomplete sections"],
   "extractedTitle": "the title transcribed exactly as shown, or null if it isn't visible",
   "extractedOverview": "the overview/About text transcribed exactly as shown, or null if it isn't visible",
+  "extractedSkills": ["skill tags transcribed exactly as shown, in the order they appear, or an empty array if the skills section isn't visible"],
   "rateSuggestion": {
     "category": "the matched category name, or null if none was identifiable",
     "experienceLevel": "entry, intermediate, or expert, based on the real work-history evidence you found, or null if it couldn't be honestly estimated",
