@@ -50,7 +50,7 @@ export default async function AdminPage({ searchParams }) {
           <nav className="tool-nav">
             <a href="/">← Back to app</a>
           </nav>
-          <p className="eyebrow">Upwork Freelancer Toolkit</p>
+          <p className="eyebrow">Freelance Profile Toolkit</p>
           <h1>Captured Emails</h1>
           <p>
             A private list of everyone who has used a free credit on any tool, how many of
