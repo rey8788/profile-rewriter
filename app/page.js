@@ -293,13 +293,16 @@ export default function Home() {
       handleApiSuccess(data);
       setScanResult(data);
       setScanModalOpen(true);
-      // Carry the title and overview it read off the screenshot straight into the
-      // Title & Overview tab (and Job Match's overview field) so there's something
-      // real to rewrite from, instead of the person retyping what's already on screen.
+      // Carry the title, overview, and skills it read off the screenshot straight into
+      // the Title & Overview tab and Job Match tab so there's something real to work
+      // from, instead of the person retyping what's already on screen.
       if (data.extractedTitle) setTitle(data.extractedTitle);
       if (data.extractedOverview) {
         setOverviewAndPersist(data.extractedOverview);
         setServices(data.extractedOverview);
+      }
+      if (Array.isArray(data.extractedSkills) && data.extractedSkills.length > 0) {
+        setSkills(data.extractedSkills.join('\n'));
       }
     } catch (err) {
       setScanError(err.message || 'Something went wrong. Please try again.');
