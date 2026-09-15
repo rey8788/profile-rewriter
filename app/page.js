@@ -394,6 +394,12 @@ export default function Home() {
       handleApiSuccess(data);
       setRewriteResult(data);
       setRewriteModalOpen(true);
+      // Carry the finished overview straight into the Job Match tab's "profile
+      // overview" field so the person doesn't have to retype or manually copy it
+      // over — same idea as how the resume-import result pre-fills things.
+      if (data.rewrittenOverview) {
+        setServices(data.rewrittenOverview);
+      }
     } catch (err) {
       setRewriteError(err.message || 'Something went wrong. Please try again.');
     } finally {
