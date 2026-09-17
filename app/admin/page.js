@@ -1,4 +1,4 @@
-import { getAllSubscribers, getFreeCreditsLimit } from '../lib/credits';
+import { getAllSubscribers, getFreeCreditsLimit, getFreeCreditsLimitForEmail } from '../lib/credits';
 
 const thStyle = {
   textAlign: 'left',
@@ -42,6 +42,7 @@ export default async function AdminPage({ searchParams }) {
   const authorized = Boolean(adminKey) && key === adminKey;
   const errorCode = typeof sp?.error === 'string' ? sp.error : '';
   const doneAction = typeof sp?.done === 'string' ? sp.done : '';
+  const doneEmail = typeof sp?.email === 'string' ? sp.email : '';
 
   return (
     <>
@@ -53,8 +54,9 @@ export default async function AdminPage({ searchParams }) {
           <p className="eyebrow">Freelance Profile Toolkit</p>
           <h1>Captured Emails</h1>
           <p>
-            A private list of everyone who has used a free credit on any tool, how many of
-            their {getFreeCreditsLimit()} they have left, and a way to grant unlimited access to paying subscribers.
+            A private list of everyone who has used a free credit on any tool, how many they
+            have left out of their own pool, and a way to grant unlimited access to paying
+            subscribers.
           </p>
         </div>
       </section>
@@ -64,7 +66,12 @@ export default async function AdminPage({ searchParams }) {
           {!authorized ? (
             <NotAuthorized hasAdminKey={Boolean(adminKey)} />
           ) : (
-            <SubscriberTable adminKey={adminKey} errorCode={errorCode} doneAction={doneAction} />
+            <SubscriberTable
+              adminKey={adminKey}
+              errorCode={errorCode}
+              doneAction={doneAction}
+              doneEmail={doneEmail}
+            />
           )}
         </div>
       </main>
@@ -104,9 +111,12 @@ function NotAuthorized({ hasAdminKey }) {
   );
 }
 
-async function SubscriberTable({ adminKey, errorCode, doneAction }) {
+async function SubscriberTable({ adminKey, errorCode, doneAction, doneEmail }) {
   const subscribers = await getAllSubscribers();
   const redirectTo = `/admin?key=${adminKey}`;
+  // The grant/revoke confirmation message names a credit limit, and that limit
+  // is per-email now — look up whichever email the admin just acted on.
+  const doneLimit = doneEmail ? await getFreeCreditsLimitForEmail(doneEmail) : getFreeCreditsLimit();
 
   return (
     <>
@@ -122,7 +132,7 @@ async function SubscriberTable({ adminKey, errorCode, doneAction }) {
       )}
       {!errorCode && doneAction && (
         <div className="gaps" style={{ marginTop: '1rem' }}>
-          <p style={{ margin: 0 }}>{doneMessage(doneAction, getFreeCreditsLimit())}</p>
+          <p style={{ margin: 0 }}>{doneMessage(doneAction, doneLimit)}</p>
         </div>
       )}
 
@@ -193,7 +203,7 @@ async function SubscriberTable({ adminKey, errorCode, doneAction }) {
                 <tr key={row.email}>
                   <td style={tdStyle}>{row.email}</td>
                   <td style={tdStyle}>
-                    {row.paid ? '—' : `${row.used} of ${getFreeCreditsLimit()}`}
+                    {row.paid ? '—' : `${row.used} of ${row.limit}`}
                   </td>
                   <td style={tdStyle}>
                     {row.paid ? (
