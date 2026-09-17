@@ -32,5 +32,8 @@ export async function POST(req) {
     return Response.redirect(new URL(`${redirectTo}&error=${result.reason || 'failed'}`, req.url), 303);
   }
 
-  return Response.redirect(new URL(`${redirectTo}&done=${action}`, req.url), 303);
+  return Response.redirect(
+    new URL(`${redirectTo}&done=${action}&email=${encodeURIComponent(email)}`, req.url),
+    303
+  );
 }
