@@ -6,20 +6,62 @@ import IORedis from 'ioredis';
 // Writer) — each successful generation deducts one credit from the same pool,
 // regardless of which tool spent it.
 //
-// The pool size is time-based rather than a fixed constant: Rey's community
-// beta testers get a bigger pool through the end of September to really put
-// the tools through their paces, then everyone — beta testers and brand-new
-// signups alike — drops to the standard pool starting October 1. Nothing is
-// stored per-user for this, so nobody needs a one-time migration: the limit
-// is just computed fresh from today's date every time, which means a beta
-// tester who's already used more than the standard pool simply shows 0
-// remaining once the date passes, exactly like a new signup would.
+// The pool size depends on *when someone first showed up*, not on today's date:
+// anyone who was already verified before the Sept 17, 2026 5am PT cutover is
+// grandfathered into the bigger beta pool forever, and anyone brand-new from
+// that cutover on gets the new standard pool — permanently, with no further
+// step-down planned. Because that decision has to stick for each email even as
+// "today" keeps moving forward, it's persisted once per email (see
+// resolveCreditTier below) instead of being recomputed from the clock like the
+// old time-based version was.
 const BETA_FREE_CREDITS = 50;
-const STANDARD_FREE_CREDITS = 5;
-const BETA_CUTOVER = new Date('2026-10-01T00:00:00Z');
+const NEW_SIGNUP_FREE_CREDITS = 20;
+const NEW_SIGNUP_CUTOVER = new Date('2026-09-17T12:00:00Z'); // 5:00am PDT
 
+// Sync, no-email version: what would a brand-new signup get right now, if we
+// don't yet know who they are. Used only where no email exists yet in the flow
+// (e.g. the generic "this gets you N free credits" hint before someone's typed
+// their email in).
 export function getFreeCreditsLimit() {
-  return new Date() < BETA_CUTOVER ? BETA_FREE_CREDITS : STANDARD_FREE_CREDITS;
+  return new Date() < NEW_SIGNUP_CUTOVER ? BETA_FREE_CREDITS : NEW_SIGNUP_FREE_CREDITS;
+}
+
+// Decides — once, ever, per email — which pool that email belongs to, and
+// persists it so the answer never changes again even as the standard pool
+// might change in the future. The old `verified:<email>` key has no timestamp
+// on it, so the only way to tell "already existed before this shipped" from
+// "brand new" is to catch it right at this first read: if the email was
+// already verified, it predates this tiering logic entirely and is grandfathered
+// at the beta pool; otherwise it's judged against the cutover like normal.
+async function resolveCreditTier(email) {
+  const normalized = normalizeEmail(email);
+  const { client } = getRedis();
+  if (!client) {
+    // No store to persist a decision in — fall back to today's default rather
+    // than blocking anything.
+    return getFreeCreditsLimit();
+  }
+  try {
+    const stored = await client.get(`credit_tier:${normalized}`);
+    if (stored) return Number(stored);
+
+    const alreadyVerified = await isEmailVerified(email);
+    const limit = alreadyVerified || new Date() < NEW_SIGNUP_CUTOVER
+      ? BETA_FREE_CREDITS
+      : NEW_SIGNUP_FREE_CREDITS;
+    await client.set(`credit_tier:${normalized}`, String(limit));
+    return limit;
+  } catch (err) {
+    console.warn('Credit tier resolution failed — defaulting to the standard pool:', err?.message || err);
+    return NEW_SIGNUP_FREE_CREDITS;
+  }
+}
+
+// Async, per-email version — this is the one that actually governs someone's
+// real limit once they have an email in play (checking/consuming credits,
+// the admin list).
+export async function getFreeCreditsLimitForEmail(email) {
+  return resolveCreditTier(email);
 }
 
 // How long a 6-digit verification code is valid for after it's emailed out.
@@ -329,9 +371,11 @@ export async function revokeUnlimitedAccess(email) {
 // request goes untracked. An unverified email is blocked here too, before we even
 // look at its credit balance.
 export async function getCreditStatus(email) {
-  const limit = getFreeCreditsLimit();
   const verified = await isEmailVerified(email);
   if (!verified) {
+    // Not verified yet, so no tier has been (or should be) decided for this
+    // email — show today's generic default just for display purposes.
+    const limit = getFreeCreditsLimit();
     return { allowed: false, remaining: limit, total: limit, tracked: false, reason: 'not_verified' };
   }
 
@@ -340,6 +384,7 @@ export async function getCreditStatus(email) {
     return { allowed: true, remaining: null, total: null, tracked: true, unlimited: true };
   }
 
+  const limit = await getFreeCreditsLimitForEmail(email);
   const { client } = getRedis();
   if (!client) {
     console.warn('Credit store not configured (no KV/Upstash/Redis env vars found) — allowing request untracked.');
@@ -363,17 +408,17 @@ export async function getCreditStatus(email) {
 export async function getAllSubscribers() {
   const { client } = getRedis();
   if (!client) return [];
-  const limit = getFreeCreditsLimit();
   try {
     const emails = await client.smembers('subscriber_emails');
     const rows = await Promise.all(
       emails.map(async (email) => {
-        const [usedRaw, paidRaw] = await Promise.all([
+        const [usedRaw, paidRaw, limit] = await Promise.all([
           client.get(`credits:${email}`),
           client.get(`paid:${email}`),
+          getFreeCreditsLimitForEmail(email),
         ]);
         const used = Number(usedRaw || 0);
-        return { email, used, remaining: Math.max(0, limit - used), paid: Boolean(paidRaw) };
+        return { email, used, remaining: Math.max(0, limit - used), paid: Boolean(paidRaw), limit };
       })
     );
     rows.sort((a, b) => a.email.localeCompare(b.email));
@@ -388,9 +433,11 @@ export async function getAllSubscribers() {
 // never charge a credit for a request that errored out. Paid emails skip the counter
 // entirely — they're never charged down and never run out.
 export async function consumeCredit(email) {
-  const limit = getFreeCreditsLimit();
   const { client } = getRedis();
-  if (!client) return { remaining: limit, total: limit, tracked: false };
+  if (!client) {
+    const limit = getFreeCreditsLimit();
+    return { remaining: limit, total: limit, tracked: false };
+  }
   const normalized = normalizeEmail(email);
   try {
     const paid = await isPaidSubscriber(email);
@@ -402,6 +449,7 @@ export async function consumeCredit(email) {
       }
       return { remaining: null, total: null, tracked: true, unlimited: true };
     }
+    const limit = await getFreeCreditsLimitForEmail(email);
     const used = await client.incr(`credits:${normalized}`);
     try {
       // Keep a simple running list of every email that's used the tool, for Rey's
@@ -413,6 +461,7 @@ export async function consumeCredit(email) {
     return { remaining: Math.max(0, limit - used), total: limit, tracked: true };
   } catch (err) {
     console.warn('Credit store write failed — not counted this time:', err?.message || err);
-    return { remaining: limit, total: limit, tracked: false };
+    const fallbackLimit = getFreeCreditsLimit();
+    return { remaining: fallbackLimit, total: fallbackLimit, tracked: false };
   }
 }
